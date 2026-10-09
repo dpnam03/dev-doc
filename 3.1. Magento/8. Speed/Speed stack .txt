@@ -1,0 +1,55 @@
+Có 3 layers 
+
+-----------------------
+Frontend 
+
+Muốn nhanh thì phải viết lại hết theme (ko dùng default Magento) - dùng cái gì thì build cái đó - theme default thừa nhiều 
+Có thể làm 1 cái theme siêu nhẹ core để reuse lại nhiều lần 
+
+Các thứ kéo điểm lớn là tracking => phải dùng trick né để tăng điểm 
+
+
+
+-----------------------
+
+Backend 
+Phải dùng profiling để tìm bottle neck
+Pre-generated content 
+
+-----------------------
+
+Infrastructure 
+
+Sẽ xử lý từ dưới lên từ Infrastructure lên 
+
+Từ Infrastructure:        
+                        API
+
+Varnish => Webstore (PHP) <=> Mysql RDS 
+              ll
+              ll
+              ll
+                Admin 
+            Memcache Redis 
+
+Dùng Stress test để thử độ chịu tải của Infrastructure với các TH tải 
+------------------------
+
+TTFB là 1 trong những yếu tố mà google pagespeed đánh giá 
+
+Với theme default Magento với đk Infrastructure và Backend ngon thì frontend đc khoảng: 24 Mobile và 90 Desktop
+ 
+Google sẽ luôn cải tiến để đánh giá, năm nay đc 90 nhưng năm sau còn khoảng 60 
+
+TH chậm đều: cần cân nhắc làm pre-generated content 
+Nên tối ưu theo di động => điểm desktop auto nhanh 
+Mở source code của lighthouse => tìm trick để né 
+ESI - một feature của Varnish 
+
+-----
+
+Next steps:
+- CF và advise solution với khách hàng 
+- Cầm làm report về speed (điểm google pagespeed, TTFB) 
+
+

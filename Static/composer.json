@@ -1,0 +1,22 @@
+ {
+    "name": "bs/catalog",
+    "description": "Catalog",
+    "type": "magento2-module",
+    "require": {
+        "php": "~7.3.0||~7.4.0||~8.1.0",
+        "magento/framework": "102.0.*|103.0.*"
+    },
+    "version": "1.0.0",
+    "license": [
+        "OSL-3.0",
+        "AFL-3.0"
+    ],
+    "autoload": {
+        "files": [
+            "registration.php"
+        ],
+        "psr-4": {
+            "Bs\\Catalog\\": ""
+        }
+    }
+ }

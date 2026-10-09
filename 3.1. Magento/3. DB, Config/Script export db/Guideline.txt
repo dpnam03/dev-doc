@@ -1,0 +1,3 @@
+script export database
+ignore data 1 vài bảng k cần thiết
+/bin/bash export.sh
