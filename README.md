@@ -40,6 +40,7 @@ Dev Docs/
 │   ├── 03. Docker Images/           (denv nginx config)
 │   ├── 04. Monitoring/
 │   └── 05. Roadmap/                 (DevOps Plan)
+└── 70. WordPress/
 ```
 
 > `60. DevOps` không theo khung con của các team platform, vì nội dung là hạ tầng chứ không phải dự án.
@@ -79,6 +80,7 @@ Mỗi team có quyền **Content manager** trên thư mục của team mình:
 | `40. Mobile App/` | `mobile-team@` |
 | `50. Nodejs & React/` | `nodejs-team@` |
 | `60. DevOps/` | `devops@` |
+| `70. WordPress/` | `wordpress-team@` |
 
 **Đặt tài liệu CI/CD, docker ở đâu:**
 - Hướng dẫn **dev sử dụng** → `01. Common/03. Dev Environment & CI-CD/` hoặc `07. CI-CD/` của team.
