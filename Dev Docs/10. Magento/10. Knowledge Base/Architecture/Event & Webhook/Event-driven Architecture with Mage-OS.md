@@ -1,3 +1,14 @@
+---
+title: Event-driven Architecture with Mage-OS
+platform: magento
+scope: backend
+status: current
+author: magento-team@
+owner: magento-team@
+updated: 2026-10-20
+tags: [event, webhook, mage-os, event-driven, async-events]
+---
+
 # Event-driven Architecture with Mage-OS
 
 > **Techstack:** Magento 2.4.x (Magento Open Source) và Mage-OS Distribution (community fork của Magento Open Source)

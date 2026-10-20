@@ -1,3 +1,14 @@
+---
+title: Decorator Pattern
+platform: magento
+scope: backend
+status: current
+author: magento-team@
+owner: magento-team@
+updated: 2026-10-20
+tags: [design-pattern, decorator, structural, plugin]
+---
+
 # Decorator Pattern
 
 > **Techstack:** Magento 2.4.x (Adobe Commerce / Magento Open Source)

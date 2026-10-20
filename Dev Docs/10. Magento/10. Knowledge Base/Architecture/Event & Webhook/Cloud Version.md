@@ -1,3 +1,14 @@
+---
+title: Event & Webhook – Cloud Version (Adobe Commerce Cloud / App Builder)
+platform: magento
+scope: backend
+status: current
+author: magento-team@
+owner: magento-team@
+updated: 2026-10-20
+tags: [event, webhook, adobe-commerce-cloud, app-builder]
+---
+
 # Event & Webhook – Cloud Version (Adobe Commerce Cloud / App Builder)
 
 > **Techstack:** Magento 2.4.x – Adobe Commerce (PaaS: on cloud infrastructure / on-premises; SaaS: Adobe Commerce as a Cloud Service)

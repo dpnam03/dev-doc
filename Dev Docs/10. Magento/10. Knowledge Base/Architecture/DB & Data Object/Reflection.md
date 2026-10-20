@@ -1,3 +1,14 @@
+---
+title: Reflection
+platform: magento
+scope: backend
+status: current
+author: magento-team@
+owner: magento-team@
+updated: 2026-10-20
+tags: [reflection, data-interface, data-object, webapi]
+---
+
 # Reflection
 
 > **Techstack:** Magento 2.4.x (Adobe Commerce / Magento Open Source)

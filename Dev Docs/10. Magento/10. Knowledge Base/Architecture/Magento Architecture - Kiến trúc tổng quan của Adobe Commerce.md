@@ -1,3 +1,14 @@
+---
+title: Kiến trúc tổng quan của Adobe Commerce
+platform: magento
+scope: backend
+status: current
+author: magento-team@
+owner: magento-team@
+updated: 2026-10-20
+tags: [architecture, module, overview]
+---
+
 # Kiến trúc tổng quan của Adobe Commerce
 
 > **Techstack:** Magento 2.4.x (Adobe Commerce / Magento Open Source)

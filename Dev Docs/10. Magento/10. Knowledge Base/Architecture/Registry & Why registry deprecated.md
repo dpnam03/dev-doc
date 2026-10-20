@@ -1,3 +1,14 @@
+---
+title: Registry & Why registry deprecated
+platform: magento
+scope: backend
+status: current
+author: magento-team@
+owner: magento-team@
+updated: 2026-10-20
+tags: [registry, deprecated, service-contract]
+---
+
 # Registry & Why registry deprecated
 
 > **Techstack:** Magento 2.4.x (Adobe Commerce / Magento Open Source)

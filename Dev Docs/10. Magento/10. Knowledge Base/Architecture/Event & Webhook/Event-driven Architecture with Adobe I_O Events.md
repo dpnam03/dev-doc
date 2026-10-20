@@ -1,3 +1,14 @@
+---
+title: Event-driven Architecture with Adobe I/O Events
+platform: magento
+scope: backend
+status: current
+author: magento-team@
+owner: magento-team@
+updated: 2026-10-20
+tags: [event, webhook, adobe-io-events, event-driven]
+---
+
 # Event-driven Architecture with Adobe I/O Events
 
 > **Techstack:** Magento 2.4.x – Adobe Commerce 2.4.4+ (PaaS: on cloud infrastructure / on-premises, và SaaS)

@@ -1,3 +1,14 @@
+---
+title: HTTP & Exception
+platform: magento
+scope: backend
+status: current
+author: magento-team@
+owner: magento-team@
+updated: 2026-10-20
+tags: [api, http, exception, error-handling]
+---
+
 # HTTP & Exception
 
 > **Techstack:** Magento 2.4.x (Adobe Commerce / Magento Open Source)
