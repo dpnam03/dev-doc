@@ -5,7 +5,7 @@ scope: backend
 status: current
 author: magento-team@
 owner: magento-team@
-updated: 2026-10-20
+updated: 2026-10-21
 tags: [database, query-builder, select, collection]
 ---
 
@@ -20,7 +20,7 @@ Magento có hai tầng "query builder":
 | Tầng | Class | Dùng ở đâu |
 |---|---|---|
 | **SQL builder** | `Magento\Framework\DB\Select` (kế thừa `Zend_Db_Select`) + `Magento\Framework\DB\Adapter\AdapterInterface` | ResourceModel, Collection, indexer, data patch – nơi được phép biết tên bảng/cột |
-| **Criteria builder** | `Magento\Framework\Api\SearchCriteriaBuilder`, `FilterBuilder`, `FilterGroupBuilder`, `SortOrderBuilder` | Service contract (`Repository::getList()`), Web API – không phụ thuộc DB |
+| **Criteria builder** | `Magento\Framework\Api\SearchCriteriaBuilder`, `FilterBuilder`, `Search\FilterGroupBuilder`, `SortOrderBuilder` | Service contract (`Repository::getList()`), Web API – không phụ thuộc DB |
 
 > [!IMPORTANT]
 > Nguyên tắc: code business / module khác dùng **SearchCriteria + Repository**; SQL builder chỉ nằm trong tầng persistence của module.
@@ -105,9 +105,9 @@ Các method hay dùng:
 - Fetch qua adapter: `fetchAll()`, `fetchRow()`, `fetchCol()`, `fetchOne()`, `fetchPairs()`, `fetchAssoc()`, hoặc `query($select)` để lấy statement và `fetch()` từng dòng.
 - Ghi qua adapter: `insert()`, `insertMultiple()`, `insertOnDuplicate()`, `update($table, $bind, $where)`, `delete($table, $where)`.
 
-### 2.1. Chèn SQL thô an toàn – `Expression`
+### 2.1. Chèn biểu thức SQL thô – `Expression`
 
-`Magento\Framework\DB\Sql\Expression` (kế thừa `Zend_Db_Expr`) đánh dấu một chuỗi là biểu thức SQL, không bị quote:
+`Magento\Framework\DB\Sql\Expression` (kế thừa `Zend_Db_Expr`) đánh dấu một chuỗi là biểu thức SQL, không bị quote/escape – chỉ dùng cho chuỗi do code kiểm soát:
 
 **Ví dụ:** tăng `qty` và cập nhật `updated_at` bằng expression
 
@@ -214,7 +214,7 @@ Preference mặc định của `Magento\Framework\Api\SearchCriteria\CollectionP
 
 - Luôn dùng `$this->resource->getTableName()` / `$collection->getTable()` – hỗ trợ table prefix.
 - Chỉ select cột cần (`from($table, ['col1', 'col2'])`), tránh `*` trên bảng rộng.
-- `IN (?)` với mảng rỗng sinh ra `IN ()` → lỗi cú pháp SQL – luôn kiểm tra mảng rỗng và return sớm.
+- `IN (?)` với mảng rỗng **không** lỗi cú pháp: `Pdo\Mysql::quoteInto()` thay mảng rỗng bằng `NULL` → `IN (NULL)` không khớp dòng nào, còn `NOT IN (NULL)` (vd. `['nin' => []]`) cũng trả **0 dòng** thay vì toàn bộ – luôn kiểm tra mảng rỗng và return sớm / bỏ điều kiện.
 - Query trả nhiều dòng → dùng batch/iterator ([iterator](iterator.md)), không `fetchAll()` cả triệu dòng.
 - Debug SQL: `(string)$select` – xem [Explain & Profile query](Explain%20%26%20Profile%20query.md).
 - Không dùng `Zend_Db_Expr`/`Expression` cho dữ liệu người dùng.

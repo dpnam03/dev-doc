@@ -5,7 +5,7 @@ scope: backend
 status: current
 author: magento-team@
 owner: magento-team@
-updated: 2026-10-20
+updated: 2026-10-21
 tags: [database, eav, attribute]
 ---
 
@@ -205,7 +205,7 @@ $this->productResource->saveAttribute($product, 'vendor_warranty');
 $this->productAction->updateAttributes($productIds, ['vendor_warranty' => '12 months'], $storeId);
 ```
 
-(`$this->productResource` là `Magento\Catalog\Model\ResourceModel\Product`, `$this->productAction` là `Magento\Catalog\Model\ResourceModel\Product\Action`.)
+(`$this->productResource` là `Magento\Catalog\Model\ResourceModel\Product`, `$this->productAction` là `Magento\Catalog\Model\Product\Action` – model này dispatch event `catalog_product_attribute_update_before` và reindex Product EAV / Category Products rồi mới gọi `ResourceModel\Product\Action::updateAttributes()`; gọi thẳng resource model thì chỉ ghi DB, không có event/reindex.)
 
 ## 6. So sánh EAV và Flat
 

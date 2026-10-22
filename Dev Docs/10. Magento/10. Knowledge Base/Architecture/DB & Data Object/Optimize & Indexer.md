@@ -5,7 +5,7 @@ scope: backend
 status: current
 author: magento-team@
 owner: magento-team@
-updated: 2026-10-20
+updated: 2026-10-21
 tags: [database, optimization, index, indexer, performance]
 ---
 
@@ -92,7 +92,8 @@ flowchart TD
     A["Save entity / import / SQL trực tiếp"] --> B[("Bảng subscription<br/>vd. vendor_module_item")]
     B -->|"MySQL trigger"| C[("Changelog #lt;view_id#gt;_cl<br/>version_id, entity_id")]
     D["Cron indexer_update_all_views"] --> E["Magento\Indexer\Cron\UpdateMview::execute()"]
-    E --> F["Mview\Processor::update('indexer')"]
+    E --> E2["Magento\Indexer\Model\Processor::updateMview()"]
+    E2 --> F["Mview\Processor::update('indexer')"]
     F --> G["Mview\View::update()"]
     G -->|"đọc version_id cuối trong mview_state<br/>và version hiện tại của changelog"| C
     G --> H["Mview\ActionInterface::execute(ids)"]
@@ -230,13 +231,13 @@ Ghi hàng loạt: `insertMultiple()`, `insertOnDuplicate()` thay vì `save()` t�
 
 ## 5. Best practices & lưu ý
 
-- Production: tất cả indexer để **Update by Schedule**, cron chạy ổn định.
+- Production: tất cả indexer để **Update by Schedule**, cron chạy ổn định. (Customer Grid hỗ trợ schedule từ 2.4.8 và mặc định là schedule; bản < 2.4.8 Customer Grid chỉ hỗ trợ Update on Save.)
 - Storefront đọc từ index table / search engine, không join trực tiếp bảng EAV trong block/plugin.
 - Không gọi `reindexAll()` trong request web; full reindex chỉ chạy CLI/cron.
 - Tránh `getSize()` + `count()` + `load()` cùng lúc trên collection lớn; tránh `addAttributeToSelect('*')`.
 - Duyệt dữ liệu lớn theo batch – xem [iterator](iterator.md).
 - Xác minh hiệu quả bằng `EXPLAIN` và query log – xem [Explain & Profile query](Explain%20%26%20Profile%20query.md).
-- Thay đổi trực tiếp bằng SQL vào bảng subscription vẫn kích hoạt trigger mview; nhưng nếu mất trigger (vd. dump/restore DB không kèm trigger) thì schedule không còn ghi changelog – chuyển indexer sang `realtime` rồi `schedule` lại để Magento tạo lại trigger.
+- Thay đổi trực tiếp bằng SQL vào bảng subscription vẫn kích hoạt trigger mview; nhưng nếu mất trigger (vd. dump/restore DB không kèm trigger) thì schedule không còn ghi changelog – chuyển indexer sang `realtime` rồi `schedule` lại để Magento tạo lại trigger. Lưu ý: chuyển sang `realtime` sẽ **drop bảng `_cl`** (mất các thay đổi chưa xử lý) và **invalidate** indexer (`Indexer::setScheduled(false)`) → cron `indexer_reindex_all_invalid` sẽ full reindex; Adobe khuyên bật maintenance mode và tắt cron trước khi đổi mode. Cách nhẹ hơn: `bin/magento setup:upgrade` tạo lại trigger cho các indexer đang ở mode schedule mà không drop changelog, không invalidate (`Magento\Indexer\Setup\Recurring`).
 
 ## Tham khảo
 

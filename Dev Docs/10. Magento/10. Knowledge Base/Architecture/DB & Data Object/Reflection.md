@@ -5,7 +5,7 @@ scope: backend
 status: current
 author: magento-team@
 owner: magento-team@
-updated: 2026-10-20
+updated: 2026-10-21
 tags: [reflection, data-interface, data-object, webapi]
 ---
 
@@ -28,9 +28,9 @@ Nhờ vậy dev chỉ cần khai báo interface `Api/Data/*Interface` với gett
 | Class | Vai trò |
 |---|---|
 | `Magento\Framework\Reflection\MethodsMap` | Đọc danh sách method của interface/class + kiểu trả về, số tham số, `isRequired`. Kết quả cache vào cache type **`reflection`** |
-| `Magento\Framework\Reflection\TypeProcessor` | Chuẩn hoá & phân loại type (`int[]`, `string`, `\Vendor\...\Interface`), xử lý PHPDoc, tìm getter/setter, `isTypeSimple()`, `isArrayType()`… |
+| `Magento\Framework\Reflection\TypeProcessor` | Chuẩn hoá & phân loại type (`int[]`, `string`, `\Vendor\...\Interface`), xử lý PHPDoc, `isTypeSimple()`, `isArrayType()`… (`findGetterMethodName()`/`findSetterMethodName()` đã deprecated, chỉ gọi sang `NameFinder`) |
 | `Magento\Framework\Reflection\DataObjectProcessor` | `buildOutputDataArray($dataObject, $dataObjectType)` – Data Object → array (đệ quy cho object lồng nhau) |
-| `Magento\Framework\Reflection\ExtensionAttributesProcessor` | Serialize `extension_attributes` (có kiểm tra ACL resource của attribute) |
+| `Magento\Framework\Reflection\ExtensionAttributesProcessor` | Serialize `extension_attributes`; kiểm tra ACL resource của attribute khi `isPermissionChecked = true` (virtualType `ExtensionAttributesProcessorPermissionChecked` trong `etc/webapi_rest/di.xml`, `etc/webapi_soap/di.xml`) |
 | `Magento\Framework\Reflection\CustomAttributesProcessor` | Serialize `custom_attributes` (EAV) |
 | `Magento\Framework\Reflection\FieldNamer` | `getFooBar()` / `isFoo()` / `hasFoo()` → `foo_bar` / `foo` |
 | `Magento\Framework\Reflection\TypeCaster` | Cast giá trị scalar theo type khai báo |
@@ -46,23 +46,28 @@ Nhờ vậy dev chỉ cần khai báo interface `Api/Data/*Interface` với gett
 ```mermaid
 sequenceDiagram
     participant C as Client
+    participant SRP as SynchronousRequestProcessor
     participant SIP as ServiceInputProcessor
     participant MM as MethodsMap
     participant R as ItemRepository
     participant SOP as ServiceOutputProcessor
     participant DOP as DataObjectProcessor
-    C->>SIP: JSON body → process($serviceClass, $method, $inputArray)
+    C->>SRP: JSON body
+    SRP->>SIP: InputParamsResolver::resolve() → process($serviceClass, $method, $inputArray)
     SIP->>MM: getMethodParams() – đọc chữ ký method của Repository
     MM-->>SIP: name, type, default value của từng tham số
-    SIP->>SIP: convertValue() → tạo Data Object qua setter (TypeProcessor tìm setter)
-    SIP->>R: save(ItemInterface $item)
-    R-->>SOP: $result
+    SIP->>SIP: convertValue() → _createFromArray(): tạo Data Object qua constructor args, fallback setter (NameFinder tìm getter/setter)
+    SIP-->>SRP: $inputParams
+    SRP->>R: save(ItemInterface $item)
+    R-->>SRP: $result
+    SRP->>SOP: process($result, $serviceClass, $method)
     SOP->>DOP: buildOutputDataArray($item, ItemInterface::class)
     DOP->>MM: getMethodsMap(ItemInterface::class)
-    DOP->>DOP: chỉ lấy method không tham số, bắt đầu bằng get/is/has
+    DOP->>DOP: chỉ lấy method không có tham số bắt buộc, bắt đầu bằng get/is/has
     DOP->>DOP: FieldNamer – getCreatedAt() → created_at
     DOP-->>SOP: array
-    SOP-->>C: JSON response
+    SOP-->>SRP: array
+    SRP-->>C: JSON response
 ```
 
 *Hình 1: Reflection chuyển đổi input/output của một REST request*
@@ -157,14 +162,14 @@ Khác biệt với `$model->getData()`: `getData()` trả **mọi** key trong `_
 
 ## 5. Reflection cache
 
-- `MethodsMap` lưu metadata vào `Magento\Framework\App\Cache\Type\Reflection` (cache id `reflection`, tag `REFLECTION`) – xem [Magento Cache](../Magento%20Cache.md).
+- `MethodsMap` lưu metadata vào `Magento\Framework\App\Cache\Type\Reflection` (cache type `reflection`, tag `REFLECTION`; key dạng `serviceInterfaceMethodsMap-<md5>`, `service_method_params_<md5>`) – xem [Magento Cache](../Magento%20Cache.md).
 - Sau khi sửa PHPDoc/chữ ký method của Data Interface hoặc thêm extension attribute, nếu API trả field cũ/sai type: `bin/magento cache:clean reflection config_webservice` (WSDL/service metadata nằm ở cache `config_webservice`).
 - Production mode: chạy lại `setup:di:compile` khi đổi interface (generated `*Extension`, `*ExtensionInterface`, factory).
 
 ## 6. Best practices & lưu ý
 
 - Mọi getter của Data Interface phải có `@return` chính xác; thiếu/sai → lỗi khi gọi API (Web API không suy được type) hoặc field bị cast sai.
-- Getter có tham số (`getFoo($storeId)`) bị **bỏ qua** khi serialize.
+- Getter có tham số **bắt buộc** (`getFoo($storeId)`) bị **bỏ qua** khi serialize (tham số có default value thì vẫn được gọi).
 - Không đặt method helper bắt đầu bằng `get`/`is`/`has` trong Data Interface nếu không muốn nó xuất hiện trong output.
 - Giá trị `null` của getter không bắt buộc sẽ bị lược khỏi output.
 - Reflection runtime (`\ReflectionClass`) tốn chi phí – dựa vào `MethodsMap` (đã cache) thay vì tự reflect trong vòng lặp.

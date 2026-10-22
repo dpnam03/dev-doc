@@ -5,7 +5,7 @@ scope: backend
 status: current
 author: magento-team@
 owner: magento-team@
-updated: 2026-10-20
+updated: 2026-10-21
 tags: [session, redis, storage]
 ---
 
@@ -99,7 +99,7 @@ Cách Magento chọn handler lúc runtime:
 flowchart TD
     A["app/etc/env.php<br/>session/save"] --> B["Session\Config<br/>setOption('session.save_handler')"]
     B --> C["SessionManager::start()<br/>registerSaveHandler()"]
-    C --> D["Session\SaveHandler::callSafely()<br/>(lần đầu read/write)"]
+    C --> D["Session\SaveHandler::callSafely()<br/>(lần gọi đầu tiên – open())"]
     D --> E["SaveHandlerFactory::create($saveMethod)"]
     E -->|"db"| F["SaveHandler\DbTable<br/>bảng session"]
     E -->|"redis"| G["SaveHandler\Redis"]
@@ -197,7 +197,7 @@ public function execute()
 - Lưu ít và nhỏ: id thay vì object/collection; session lớn làm chậm mọi request và có thể vượt `max_session_size_*`.
 - Redis session có **locking**: request song song (AJAX) của cùng user phải chờ nhau. Với request chỉ đọc, gọi `$session->writeClose()` sớm để nhả lock.
 - Sau đăng nhập/đổi quyền: `regenerateId()` để tránh session fixation (core đã làm cho customer/admin login).
-- Session không dùng cho API REST/GraphQL (token-based) – không dựa vào `Customer\Model\Session` trong code service contract.
+- API REST/GraphQL chủ yếu xác thực bằng token, nhưng session **vẫn được dùng**: REST nhận session-based authentication cho request AJAX (XHR) từ storefront/Admin (`CustomerSessionUserContext`, `AdminSessionUserContext` trong `etc/webapi_rest/di.xml`), GraphQL cũng có `CustomerSessionUserContext` và chỉ tắt session khi bật `graphql/session/disable` (mặc định `0`). Vì vậy trong code service contract lấy user qua `Magento\Authorization\Model\UserContextInterface`, không dựa vào `Customer\Model\Session`.
 
 ## Tham khảo
 
@@ -206,6 +206,7 @@ public function execute()
 - [env.php reference – session](https://experienceleague.adobe.com/en/docs/commerce-operations/configuration-guide/files/config-reference-envphp)
 - [Private content](https://developer.adobe.com/commerce/php/development/cache/page/private-content)
 - [Public content](https://developer.adobe.com/commerce/php/development/cache/page/public-content)
+- [Web API authentication (session-based)](https://developer.adobe.com/commerce/webapi/get-started/authentication/)
 
 **Source code**
 - [`Magento\Framework\Session\SaveHandler`](https://github.com/magento/magento2/blob/2.4-develop/lib/internal/Magento/Framework/Session/SaveHandler.php)

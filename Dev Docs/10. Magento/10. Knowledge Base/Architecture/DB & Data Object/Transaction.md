@@ -5,7 +5,7 @@ scope: backend
 status: current
 author: magento-team@
 owner: magento-team@
-updated: 2026-10-20
+updated: 2026-10-21
 tags: [database, transaction, resource-model]
 ---
 
@@ -23,11 +23,11 @@ Transaction đảm bảo một nhóm thao tác ghi DB **thành công cùng nhau 
 | Resource model | `AbstractResource::beginTransaction()` / `commit()` / `rollBack()` / `addCommitCallback()` | `AbstractDb::save()`/`delete()` đã tự bọc transaction |
 | Nhiều model | `Magento\Framework\DB\Transaction` (`TransactionFactory`) | Save/delete nhiều model trong một transaction (vd. invoice + order) |
 
-Ngoài ra `Magento\Framework\Model\ResourceModel\Db\TransactionManagerInterface` (`start()`, `commit()`, `rollBack()`) quản lý transaction trên nhiều connection, được dùng nội bộ bởi `ObjectRelationProcessor`/EntityManager.
+Ngoài ra `Magento\Framework\Model\ResourceModel\Db\TransactionManagerInterface` (`start()`, `commit()`, `rollBack()`) quản lý transaction trên nhiều connection; được dùng bởi `AbstractDb::delete()` (khác với `save()` dùng `beginTransaction()`), EAV `AbstractEntity::delete()`, EntityManager `Operation\Delete` và được truyền vào `ObjectRelationProcessor::delete()`.
 
 ## 2. Nested transaction trong Magento
 
-MySQL không hỗ trợ transaction lồng nhau thực sự. `Magento\Framework\DB\Adapter\Pdo\Mysql` giả lập bằng **bộ đếm `_transactionLevel`**:
+MySQL không hỗ trợ transaction lồng nhau thực sự (`START TRANSACTION` khi đang có transaction sẽ implicit commit transaction hiện tại – [MySQL 8.0 §15.3.3](https://dev.mysql.com/doc/refman/8.0/en/implicit-commit.html)). MySQL có `SAVEPOINT` / `ROLLBACK TO SAVEPOINT` để rollback một phần ([MySQL 8.0 §15.3.4](https://dev.mysql.com/doc/refman/8.0/en/savepoint.html)), nhưng adapter Magento **không dùng savepoint** – nên `rollBack()` ở level trong không thể rollback riêng phần của nó. `Magento\Framework\DB\Adapter\Pdo\Mysql` giả lập bằng **bộ đếm `_transactionLevel`**:
 
 - `beginTransaction()`: chỉ gửi `BEGIN` khi level = 0, sau đó `++level`.
 - `commit()`: chỉ gửi `COMMIT` khi level = 1; các level trong chỉ giảm bộ đếm.
@@ -64,6 +64,9 @@ sequenceDiagram
 `AbstractResource::addCommitCallback($callback)` đăng ký callback vào `Magento\Framework\Model\CallbackPool` theo connection. Plugin `Magento\Framework\Model\ExecuteCommitCallbacks::afterCommit()` chạy các callback **khi transaction ngoài cùng đã commit** (level về 0); `afterRollBack()` xoá chúng. Exception trong callback chỉ bị log (`critical`), không làm hỏng commit.
 
 Model dùng cơ chế này cho `afterCommitCallback()` → event `<prefix>_save_commit_after`. Đây là chỗ đúng để: publish message queue, gọi API ngoài, reindex, clean cache – những việc **không được chạy nếu dữ liệu bị rollback**.
+
+> [!NOTE]
+> `<prefix>_delete_commit_after` **không** đi qua `CallbackPool`: `AbstractDb::delete()` gọi `$object->afterDeleteCommit()` ngay sau `transactionManager->commit()`. Nếu delete nằm trong một transaction ngoài thì event này chạy **trước** khi COMMIT thật được gửi.
 
 > [!WARNING]
 > `Magento\Framework\DB\Transaction::addCommitCallback()` thì **khác**: callback chạy **trước** commit, vẫn trong transaction (`_runCallbacks()` được gọi trước `_commitTransaction()`); nếu callback throw thì toàn bộ rollback.
@@ -181,6 +184,8 @@ Hoặc observer event `vendor_module_item_save_commit_after` (với `_eventPrefi
 
 **Tài liệu chính thức**
 - [MySQL 8.0 – Statements That Cause an Implicit Commit](https://dev.mysql.com/doc/refman/8.0/en/implicit-commit.html)
+- [MySQL 8.0 – SAVEPOINT, ROLLBACK TO SAVEPOINT, and RELEASE SAVEPOINT](https://dev.mysql.com/doc/refman/8.0/en/savepoint.html)
+- [MySQL 8.0 – How to Minimize and Handle Deadlocks](https://dev.mysql.com/doc/refman/8.0/en/innodb-deadlocks-handling.html)
 
 **Source code**
 - [`Magento\Framework\DB\Adapter\Pdo\Mysql`](https://github.com/magento/magento2/blob/2.4-develop/lib/internal/Magento/Framework/DB/Adapter/Pdo/Mysql.php)

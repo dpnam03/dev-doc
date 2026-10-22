@@ -5,7 +5,7 @@ scope: backend
 status: current
 author: magento-team@
 owner: magento-team@
-updated: 2026-10-20
+updated: 2026-10-21
 tags: [database, version-control, snapshot, resource-model]
 ---
 
@@ -33,7 +33,7 @@ tags: [database, version-control, snapshot, resource-model]
 | `...\Db\VersionControl\Metadata` | Danh sách cột của main table (`describeTable`) |
 | `...\Db\VersionControl\RelationComposite` | Chạy lần lượt các `RelationInterface` rồi dispatch event `<event_prefix>_process_relation` |
 | `...\Db\VersionControl\RelationInterface` | `processRelation(AbstractModel $object)` – lưu entity con |
-| `Magento\Eav\Model\Entity\VersionControl\AbstractEntity` | Phiên bản cho EAV entity (customer, customer address) |
+| `Magento\Eav\Model\Entity\VersionControl\AbstractEntity` | Phiên bản cho EAV entity (customer, customer address); `Magento_Customer` inject Snapshot virtualType dùng `Magento\Eav\Model\Entity\VersionControl\Metadata` (cột entity table + EAV attribute) |
 
 (`...` = `Magento\Framework\Model\ResourceModel`)
 

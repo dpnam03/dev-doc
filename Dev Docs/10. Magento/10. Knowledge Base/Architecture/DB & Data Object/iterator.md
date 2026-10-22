@@ -5,7 +5,7 @@ scope: backend
 status: current
 author: magento-team@
 owner: magento-team@
-updated: 2026-10-20
+updated: 2026-10-21
 tags: [database, iterator, batch, large-dataset, performance]
 ---
 
@@ -86,7 +86,9 @@ class SkuExporter
 
     public function export(\SplFileObject $file): void
     {
-        $collection = $this->collectionFactory->create()->addAttributeToSelect('name');
+        // joinType 'left' → JOIN bảng value của `name` vào Select; không truyền joinType thì EAV collection
+        // load attribute bằng query riêng sau load() → `walk()` trên getSelect() sẽ không có cột `name`
+        $collection = $this->collectionFactory->create()->addAttributeToSelect('name', 'left');
 
         $this->iterator->walk(
             $collection->getSelect(),
@@ -107,7 +109,7 @@ class SkuExporter
 
 ## 5. Batch theo khoảng id – `Query\Generator` (khuyến nghị)
 
-**Ví dụ:** reader trả từng dòng lazy, mỗi batch một query
+**Ví dụ:** reader trả từng dòng lazy, mỗi batch một `Select`
 
 ```php
 <?php
@@ -154,9 +156,10 @@ foreach ($this->itemBatchReader->rows(2000) as $row) {
 }
 ```
 
-- Strategy mặc định `BatchIteratorInterface::UNIQUE_FIELD_ITERATOR` (`BatchIterator`): mỗi batch là `WHERE entity_id > <max id batch trước> ORDER BY entity_id LIMIT n` – nhanh đều kể cả với bảng rất lớn.
-- `NON_UNIQUE_FIELD_ITERATOR` → `generateByRange()` / `BatchRangeIterator` dùng `LIMIT/OFFSET`, cho cột không unique.
+- Strategy mặc định `BatchIteratorInterface::UNIQUE_FIELD_ITERATOR` (`BatchIterator`): mỗi batch là `WHERE entity_id > <max id batch trước> ORDER BY entity_id LIMIT n` – nhanh đều kể cả với bảng rất lớn. Mỗi batch iterator chạy thêm 1 query `SELECT MAX(..), COUNT(*)` bọc ngoài (`calculateBatchSize()`).
+- `NON_UNIQUE_FIELD_ITERATOR` → `BatchRangeIterator` dùng `LIMIT/OFFSET`, cho cột không unique. Gọi qua `generate($field, $select, $batchSize, BatchIteratorInterface::NON_UNIQUE_FIELD_ITERATOR)`; `generateByRange()` đã `@deprecated`.
 - Cột range nên là primary key hoặc có index, và **phải có trong danh sách cột select** (iterator tính `MAX(<range field>)` của batch hiện tại để dựng batch tiếp theo); `Select` phải có phần `FROM` hợp lệ.
+- `$select` gốc **không nên có `ORDER BY`**: `BatchIterator::initSelectObject()` chỉ *nối thêm* `ORDER BY <range field> ASC` (không reset), nên order cũ đứng trước sẽ làm `MAX(<range field>)` của batch sai → bỏ sót dòng.
 - Magento core dùng cách này trong nhiều indexer và data patch (vd. migrate dữ liệu serialized).
 
 ```mermaid

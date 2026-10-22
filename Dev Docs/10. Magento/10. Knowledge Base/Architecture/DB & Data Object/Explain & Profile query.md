@@ -5,7 +5,7 @@ scope: backend
 status: current
 author: magento-team@
 owner: magento-team@
-updated: 2026-10-20
+updated: 2026-10-21
 tags: [database, explain, profiling, performance]
 ---
 
@@ -189,7 +189,7 @@ Tổng hợp bằng `pt-query-digest` (Percona Toolkit) hoặc `mysqldumpslow` �
 
 - Đo trước, tối ưu sau: một query 5ms chạy 2000 lần (N+1) tệ hơn một query 200ms chạy 1 lần.
 - `EXPLAIN` trên dữ liệu gần với production; dataset dev nhỏ khiến optimizer chọn plan khác.
-- Hàm trên cột (`DATE(created_at) = ...`, `LOWER(sku)`), `LIKE '%abc'`, so sánh khác kiểu dữ liệu → không dùng được index.
+- Hàm trên cột (`DATE(created_at) = ...`, `LOWER(sku)`), `LIKE '%abc'`, so sánh cột chuỗi với số (vd. `sku = 123` thay vì `sku = '123'`) → không dùng được index thường. Hàm trên cột chỉ dùng được index nếu có functional index với đúng biểu thức đó (MySQL 8.0.13+).
 - `EXPLAIN ANALYZE` **thực thi** query – cẩn thận với query nặng trên production.
 - Tắt profiler/query log sau khi debug; cả hai đều tốn overhead và có thể ghi dữ liệu nhạy cảm vào log.
 - Kết hợp với Blackfire/New Relic để thấy query nằm trong call graph nào.

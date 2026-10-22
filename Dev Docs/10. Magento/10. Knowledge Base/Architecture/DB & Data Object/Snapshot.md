@@ -5,7 +5,7 @@ scope: backend
 status: current
 author: magento-team@
 owner: magento-team@
-updated: 2026-10-20
+updated: 2026-10-21
 tags: [database, snapshot, version-control, resource-model]
 ---
 
@@ -28,17 +28,17 @@ Snapshot là một phần của bộ [VersionControl](VersionControl.md); bài n
 
 | Method | Mô tả |
 |---|---|
-| `registerSnapshot(DataObject $entity)` | Lưu `$entity->getData()` (chỉ giữ các key là **cột của main table**) vào `snapshotData[get_class($entity)][$entity->getId()]` |
-| `isModified(DataObject $entity)` | `true` nếu entity chưa có id, chưa có snapshot, hoặc có ít nhất một cột khác giá trị snapshot |
+| `registerSnapshot(DataObject $entity)` | Lưu `$entity->getData()` (chỉ giữ các key là **cột của main table**; cột không có trong data được ghi `null`) vào `snapshotData[get_class($entity)][$entity->getId()]` |
+| `isModified(DataObject $entity)` | `true` nếu entity chưa có id, chưa có snapshot, unserialize snapshot lỗi, hoặc có ít nhất một cột khác giá trị snapshot |
 | `getSnapshotData(DataObject $entity): array` | Lấy dữ liệu đã chụp (rỗng nếu không có) |
 | `clear(?DataObject $entity = null)` | Xoá snapshot – **của cả class** entity truyền vào, hoặc toàn bộ nếu `null` |
 
-Danh sách cột lấy từ `Magento\Framework\Model\ResourceModel\Db\VersionControl\Metadata::getFields()` – gọi `describeTable()` trên main table của resource model và cache theo class.
+Danh sách cột lấy từ `Magento\Framework\Model\ResourceModel\Db\VersionControl\Metadata::getFields()` – gọi `describeTable()` trên main table của resource model và cache theo class. Với EAV entity (customer, customer address), `Magento_Customer` `etc/di.xml` inject Snapshot qua virtualType (`EavVersionControlSnapshot`, `CustomerAddressSnapshot`) dùng `Magento\Eav\Model\Entity\VersionControl\Metadata` → danh sách field = cột của entity table **+ các EAV attribute**.
 
 Chi tiết so sánh trong `isModified()`:
 
 - So sánh lỏng (`!=`), nên `'10'` và `10` được coi là bằng nhau.
-- Nếu giá trị hiện tại là array còn snapshot là string → unserialize snapshot rồi so sánh (dành cho field serialized).
+- Nếu giá trị hiện tại là array còn snapshot là string → unserialize snapshot rồi so sánh (dành cho field serialized); unserialize lỗi (`InvalidArgumentException`) → coi là modified.
 - **Field không phải cột của main table** (data tạm, extension attribute, related object) **không** được so sánh.
 
 ```mermaid
@@ -51,6 +51,7 @@ flowchart TD
     D --> E{"Giá trị hiện tại là array<br/>và snapshot là string?"}
     E -->|"Có"| F["unserialize snapshot"]
     E -->|"Không"| G{"Giá trị hiện tại != snapshot?"}
+    F -->|"Lỗi unserialize"| T
     F --> G
     G -->|"Có"| T
     G -->|"Không, hết cột"| N["false – không đổi"]
@@ -121,7 +122,7 @@ $isModified = $this->snapshot->isModified($order);
 $before = $this->snapshot->getSnapshotData($order);
 ```
 
-`Snapshot` được dùng như shared instance (mặc định của DI), nên mọi resource model VersionControl cùng chia sẻ một kho snapshot trong request.
+`Snapshot` được dùng như shared instance (mặc định của DI), nên các resource model VersionControl inject class `Snapshot` gốc (Sales, Quote…) cùng chia sẻ một kho snapshot trong request. Ngoại lệ: Customer/Customer Address được inject virtualType `EavVersionControlSnapshot` / `CustomerAddressSnapshot` (`Magento_Customer` `etc/di.xml`) – đó là instance riêng, nên inject `Snapshot` gốc để debug customer sẽ không thấy snapshot.
 
 ## 5. Pitfalls
 

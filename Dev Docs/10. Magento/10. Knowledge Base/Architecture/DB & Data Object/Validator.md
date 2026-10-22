@@ -5,7 +5,7 @@ scope: backend
 status: current
 author: magento-team@
 owner: magento-team@
-updated: 2026-10-20
+updated: 2026-10-21
 tags: [validation, validator, data-object]
 ---
 
@@ -17,7 +17,7 @@ tags: [validation, validator, data-object]
 
 Validator đảm bảo dữ liệu hợp lệ **trước khi ghi xuống DB**. Ở tầng server, Magento có các điểm validate chính:
 
-1. **Model validation before save** – `AbstractModel::validateBeforeSave()` được `Db\AbstractDb::save()` gọi tự động, dựa trên rule từ `_getValidationRulesBeforeSave()` (model) và `getValidationRulesBeforeSave()` (resource model).
+1. **Model validation before save** – `AbstractModel::validateBeforeSave()` được `Db\AbstractDb::save()` (và `Magento\Eav\Model\Entity\AbstractEntity::save()` cho EAV entity) gọi tự động, dựa trên rule từ `_getValidationRulesBeforeSave()` (model) và `getValidationRulesBeforeSave()` (resource model).
 2. **Validation theo cấu hình** – `etc/validation.xml` + `Magento\Framework\Validator\Factory::createValidator($entity, $group)` (customer, customer address dùng cách này).
 3. **EAV attribute validation** – backend model của attribute (`AbstractBackend::validate()`: required, unique) và `Magento\Eav\Model\Validator\Attribute\Data` (input/validate rules của attribute).
 4. **Service contract / Web API** – repository tự kiểm tra và throw `InputException`; `ServiceInputProcessor` kiểm tra kiểu dữ liệu đầu vào.
@@ -182,9 +182,13 @@ protected function _getValidationRulesBeforeSave()
 // $this->validatorFactory: Magento\Framework\Validator\Factory
 $validator = $this->validatorFactory->createValidator('vendor_item', 'save');
 if (!$validator->isValid($item)) {
-    throw new \Magento\Framework\Validator\Exception(null, null, $validator->getMessages());
+    // ItemValidator trả message phẳng ['sku' => Phrase, ...] → bọc thêm 1 cấp
+    throw new \Magento\Framework\Validator\Exception(null, null, [$validator->getMessages()]);
 }
 ```
+
+> [!WARNING]
+> Constructor `Validator\Exception($phrase, $cause, array $messages)` duyệt `$messages` **2 cấp** (`foreach ($messages as $propertyMessages) foreach ($propertyMessages as $msg)`). Validator core trả message lồng nhau (vd. `Customer\Model\Validator\Name`: `_addMessages([['firstname' => '...']])`) nên Customer truyền thẳng `$validator->getMessages()`. Với message phẳng như `ItemValidator` ở trên mà không bọc thêm `[...]`, vòng lặp trong duyệt qua object `Phrase` → exception có message **rỗng**. Ngược lại, `AbstractModel::validateBeforeSave()` cần message phẳng vì nó `implode(PHP_EOL, $errors)`.
 
 Đây là cách `Magento\Customer\Model\ResourceModel\Customer::_validate()` hoạt động (`createValidator('customer', 'save')` với các rule `check_eav`, `check_name`, `check_dob`). Module khác có thể **thêm rule vào entity `customer`** bằng `validation.xml` của mình vì file được merge. Ngoài `entity_constraints` còn có `property_constraints` (gắn validator vào một property cụ thể).
 
