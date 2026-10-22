@@ -1,3 +1,0 @@
-1. Giới thiệu về blackfire: https://blackfire.io/docs/introduction
-2. Hướng dẫn profiling trên dev-server: https://www.dropbox.com/s/qbdq4lzi018su00/Blackfire-Analyzing-Profile.docx?dl=0r42c7hddt6vad33/Blackfire-Profiling.docx?dl=0
-3. Hướng dẫn phân tích 'Call Graphs' và 'Timelines': https://www.dropbox.com/s/qbdq4lzi018su00/Blackfire-Analyzing-Profile.docx?dl=0
