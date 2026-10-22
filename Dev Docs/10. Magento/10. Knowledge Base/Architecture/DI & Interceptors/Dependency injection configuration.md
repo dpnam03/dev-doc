@@ -5,7 +5,7 @@ scope: backend
 status: current
 author: magento-team@
 owner: magento-team@
-updated: 2026-10-20
+updated: 2026-10-22
 tags: [di, di-xml, object-manager, plugin, virtual-type]
 ---
 
@@ -103,7 +103,7 @@ flowchart TD
     G -- "Có trong arguments" --> H{"Là object (instance)?"}
     G -- "Required, type-hint class" --> H
     G -- "Optional, không khai báo" --> J["Giá trị default"]
-    H -- "shared (mặc định)" --> L["ObjectManager::get()"]
+    H -- "shared (mặc định; lấy từ argument shared,<br/>nếu không có thì từ &lt;type shared&gt;)" --> L["ObjectManager::get()"]
     H -- "shared=false" --> M["ObjectManager::create()"]
     H -- "Không phải object" --> N["Giữ giá trị / parse array"]
     L --> O["new Type(...args)"]
@@ -150,7 +150,7 @@ Virtual type (`<virtualType>`) = "class ảo" là một class thật + bộ argu
 </virtualType>
 ```
 
-- Không thể khai báo **plugin** cho virtual type (plugin phải gắn vào type thật).
+- Không thể khai báo **plugin** cho virtual type (plugin phải gắn vào type thật). Ngược lại, plugin đã khai báo trên type thật (class gốc của virtual type) **vẫn chạy** trên instance của virtual type – `Magento\Framework\Interception\Config\Config::_inheritInterception()` resolve virtual type về type gốc rồi kế thừa plugin.
 - Virtual type không dùng được trong type-hint PHP – chỉ dùng trong XML (argument `object`, `preference`…).
 
 ## 6. Plugin (Interceptor)
@@ -175,7 +175,7 @@ Virtual type (`<virtualType>`) = "class ảo" là một class thật + bộ argu
 | `aroundX` | `aroundX($subject, callable $proceed, ...$args)` | Bỏ qua/bao bọc hoàn toàn method gốc – hạn chế dùng (stack trace dài, tốn performance) |
 
 - `sortOrder` nhỏ chạy trước. Khi có `around`, các plugin có sortOrder lớn hơn chạy *bên trong* around đó, nên thứ tự `after` không còn tuyến tính – xem bảng ví dụ [Prioritizing plugins](https://developer.adobe.com/commerce/php/development/components/plugins#prioritizing-plugins) trước khi dựa vào thứ tự. Sơ đồ before → around → after: xem [So sánh overview về Event, Plugin & DI](So%20sánh%20overview%20về%20Event%2C%20Plugin%20%26%20DI.md).
-- Không dùng plugin cho: `final` class/method, method non-public, static method, `__construct`/`__destruct`, virtual type, object tạo trước khi interception được bootstrap, object không tạo qua ObjectManager.
+- Không dùng plugin cho: `final` class/method, method non-public, static method, `__construct`/`__destruct`, virtual type, object tạo trước khi interception được bootstrap, object implement `Magento\Framework\ObjectManager\NoninterceptableInterface`, object không tạo qua ObjectManager (`new Foo()` không đi qua Interceptor).
 - Plugin được sinh thành class `...\Interceptor` trong `generated/code` – xem [Decorator Pattern](../SOLID%20principles%20%26%20Patterns%20in%20Magento/Decorator%20Pattern.md) để hiểu bản chất "bọc" object.
 
 ## 7. Proxy & Factory (code generation)
@@ -227,9 +227,14 @@ Khai báo argument cho `Magento\Config\Model\Config\TypePool` để `app:config:
 # sinh Interceptor/Factory/Proxy + metadata vào generated/
 bin/magento setup:di:compile
 bin/magento dev:di:info "Magento\Catalog\Api\ProductRepositoryInterface"
+# xem config của một area cụ thể (mặc định là global)
+bin/magento dev:di:info "Magento\Catalog\Api\ProductRepositoryInterface" frontend
 ```
 
 `dev:di:info` in ra: preference thực tế, constructor parameters (sau khi merge di.xml) và danh sách plugin (kèm method before/around/after) – rất hữu ích khi debug "vì sao plugin không chạy" hoặc "class nào đang thắng preference".
+
+> [!WARNING]
+> Không truyền tham số `area` thì `dev:di:info` chỉ đọc config **global** (`Magento\Developer\Console\Command\DiInfoCommand::execute()` mặc định `Area::AREA_GLOBAL`). Plugin/preference khai báo trong `etc/frontend/di.xml`, `etc/webapi_rest/di.xml`… sẽ **không hiện** – truyền thêm area (`frontend`, `adminhtml`, `webapi_rest`, `graphql`, `crontab`…) để thấy config đã merge của area đó.
 
 Checklist khi config di.xml không có hiệu lực:
 
@@ -237,7 +242,7 @@ Checklist khi config di.xml không có hiệu lực:
 2. Tên `<argument name>` có khớp tên biến constructor?
 3. Đã xoá `generated/code/<Vendor>` và cache `config` chưa (`bin/magento cache:clean config`)?
 4. Production: đã chạy lại `setup:di:compile`?
-5. Có module khác cùng khai báo preference và load sau không? (`dev:di:info`)
+5. Có module khác cùng khai báo preference và load sau không? (`dev:di:info <class> <area>`)
 
 ## Tham khảo
 

@@ -5,7 +5,7 @@ scope: backend
 status: current
 author: magento-team@
 owner: magento-team@
-updated: 2026-10-20
+updated: 2026-10-22
 tags: [di, plugin, event, observer, extensibility]
 ---
 
@@ -27,7 +27,12 @@ Nhưng trong thực tế, câu trả lời này không chính xác, vì nó cầ
 
 Mỗi event sẽ thực dispatch để thực hiện thông báo việc đã thực hiện xong hành động và truyền data tới các observer.
 
-Các observer chỉ thực hiện hành động dựa trên thông báo từ Subject, ko thể thực hiện sửa đổi or thay thế hành động của tượng gốc ban đầu. Event-Observer chỉ thay đổi được về data của object được truyền vào bằng các hàm `setData()`.
+Các observer chỉ thực hiện hành động dựa trên thông báo từ Subject, ko thể **thay thế** method của đối tượng gốc hay đổi giá trị trả về của nó (`Event\Manager::dispatch()` không trả về gì). Observer tác động qua các object được truyền vào event: gọi `setData()`/setter bất kỳ, `save()`…
+
+> [!NOTE]
+> Observer vẫn có thể **chặn luồng xử lý** của Subject, nên đừng coi event là "chỉ đổi data":
+> - Set flag `no-dispatch` để controller không chạy action – VD `Magento\Captcha\Observer\CheckContactUsFormObserver::execute()` (event `controller_action_predispatch_contact_index_post`) gọi `$this->_actionFlag->set('', Action::FLAG_NO_DISPATCH, true)` khi captcha sai.
+> - Throw exception để dừng cả hành động – VD `Magento\Captcha\Observer\CheckUserLoginBackendObserver` throw `PluginAuthenticationException` khi captcha admin login sai.
 
 ```mermaid
 sequenceDiagram
@@ -41,7 +46,7 @@ sequenceDiagram
     loop Mỗi observer đã đăng ký
         EM->>Inv: dispatch(observerConfig, observer)
         Inv->>O: execute(observer), bỏ qua nếu disabled
-        O->>O: đổi data của object qua setData()
+        O->>O: đổi data của object (setData()/setter…), có thể set flag hoặc throw exception
     end
     EM-->>S: không có giá trị trả về
 ```
@@ -54,7 +59,7 @@ Thi thoảng có thể thấy trong view của layout
 
 ## 2. DI – Inject object
 
-DI (dependency injection) sẽ thực hiện thay thế object thông qua ObjectManager. Đối tượng được thay thế sẽ và đối tượng gốc sẽ cũng đc implement một interface.
+DI (dependency injection) sẽ thực hiện thay thế object thông qua ObjectManager (`<preference>` trong `di.xml`). Thường thì đối tượng được thay thế và đối tượng gốc cùng implement một interface (`preference for="...Interface"`), nhưng preference cũng dùng được class → class: class mới phải extends class gốc để giữ type-hint, VD `<preference for="Magento\Framework\Logger\Handler\Debug" type="Magento\Developer\Model\Logger\Handler\Debug"/>` (`Magento/Developer/etc/di.xml`). Preference class → class là rewrite core, dễ conflict giữa các extension – xem [Dependency injection configuration](Dependency%20injection%20configuration.md#2-preference--map-interface--implementation).
 
 DI ko hoàn toàn giống như Mage class trong M1 replace object
 
@@ -66,9 +71,15 @@ M2 đưa show cho developer về DI pattern được thực hiện trong M2:
 
 DI sẽ phụ thuộc vào ObjectManager nên chúng sẽ chỉ có thể DI được với các object gọi sau khi ObjectManager khởi tạo.
 
-DI sẽ không thể tác động vào các object khởi tạo bằng toán tử `new Object();` mà chỉ tác động vào các object instance sử dụng `ObjectManger::get()`
+DI sẽ không thể tác động vào các object khởi tạo bằng toán tử `new Object();` mà chỉ tác động vào các object tạo qua ObjectManager: constructor injection, `ObjectManager::get()` / `ObjectManager::create()` (cả hai đều gọi `Config::getPreference()` trước khi tạo object), Factory (`FooFactory::create()` cũng gọi `ObjectManager::create()`).
 
-DI config của object được chia theo từng Environment Area sẽ được lưu trữ trong `generated/metadata/{area_config}.php`, được load khi `ObjectManagerFactory` khởi tạo `ObjectManager` cho từng môi trường.
+DI config được chia theo từng area (global, frontend, adminhtml, webapi_rest…). Nơi đọc config phụ thuộc vào việc đã compile hay chưa:
+
+- **Đã chạy `setup:di:compile`** (production): config đã merge của từng area nằm trong `generated/metadata/<area>.php` (VD `global.php`, `frontend.php`), đọc bởi `Magento\Framework\App\ObjectManager\ConfigLoader\Compiled`. `Magento\Framework\App\EnvironmentFactory` chỉ chuyển sang chế độ compiled khi file `generated/metadata/global.php` tồn tại.
+- **Chưa compile** (developer/default): ObjectManager đọc và merge trực tiếp các file `di.xml`, kết quả được cache trong cache type `config` – vì vậy sửa `di.xml` xong phải `cache:clean config`.
+
+> [!WARNING]
+> Ở môi trường dev, nếu còn sót `generated/metadata/global.php` từ lần compile trước thì Magento sẽ dùng config compiled cũ và **bỏ qua** thay đổi trong `di.xml`. Xoá `generated/metadata` (hoặc compile lại) khi gặp tình huống này.
 
 ![Trích đoạn file generated/metadata: argument đã compile cho class Magento\TwoFactorAuth\Block\Provider\Authy\Auth (context, data, jsonHelper, directoryHelper)](images/so-sanh-overview-ve-event-plugin-di/image-02.png)
 
@@ -84,11 +95,11 @@ DI phù hợp với việc customize các service contract, và sửa các hệ 
 
 ## 3. Plugin – interceptors
 
-Plugin sẽ thực hiện một interceptor lên object gốc, yếu điểm sẽ là performance và đối tượng gốc sẽ bị thay đổi. Vì interceptor sẽ thực hiện bọc ngoài func gốc bằng một function mới.
+Plugin sẽ thực hiện một interceptor lên object gốc, yếu điểm sẽ là performance và hành vi của method gốc sẽ bị thay đổi. Magento sinh class `<Class>\Interceptor` **extends** class gốc vào `generated/code` (`Magento\Framework\Interception\Code\Generator\Interceptor`), override các public method có plugin để gọi chuỗi plugin; ObjectManager trả về instance của Interceptor thay cho class gốc. Code của class gốc không bị sửa.
 
 ![Mô hình interceptor chung: request từ client đi qua PreHandle, PostHandle, AfterCompletion trước khi tới server và trả response](images/so-sanh-overview-ve-event-plugin-di/image-03.png)
 
-*Hình 4: Interceptor chặn trước và sau khi request được xử lý*
+*Hình 4: Mô hình interceptor nói chung (minh hoạ theo `HandlerInterceptor` của Spring MVC: preHandle/postHandle/afterCompletion) – chặn trước và sau khi request được xử lý. Magento không có các hook này; plugin Magento chặn từng **public method** bằng before/around/after như Hình 5.*
 
 ```mermaid
 sequenceDiagram
@@ -126,7 +137,7 @@ sequenceDiagram
 Yếu điểm:
 
 - Performance
-- Plugin sẽ là tạo thêm một đối tượng mới trong DI config, để ObjectManager có thể khởi tạo đối tượng này. `Magento\Framework\Interception\PluginList\PluginList`
+- Plugin tạo thêm object: class `\Interceptor` được sinh ra thay cho class gốc, và mỗi plugin là một instance riêng – `Magento\Framework\Interception\PluginList\PluginList` giữ danh sách plugin đã merge từ `di.xml` và lấy instance qua `ObjectManager::get()` (shared) trong `getPlugin()`.
 - Nhiều Interceptor cùng tác động vào một hành động => dữ liệu bị thay đổi khi chạy qua interceptor => Khó kiểm soát dữ liệu.
 
 Plugin phù hợp với việc customize, sửa đổi lại function cũ, thường là khi build extension vì có thể nhiều interceptor tác động lên 1 func.
