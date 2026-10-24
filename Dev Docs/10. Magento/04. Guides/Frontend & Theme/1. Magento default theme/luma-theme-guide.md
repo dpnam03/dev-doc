@@ -32,7 +32,9 @@ Upload folder fonts lên
 
 [2] Chrome 38 and newer support SVG fonts only on Windows Vista and XP.
 
-Bạn có thể vào trang [<u>https://transfonter.org/</u>](https://transfonter.org/), [<u>https://onlinefontconverter.com/</u>](https://onlinefontconverter.com/) để convert sang các định dạng font (.eot, .svg, .ttf, .woff, and .woff2).
+Bạn có thể vào trang [<u>https://transfonter.org/</u>](https://transfonter.org/), [<u>https://onlinefontconverter.com/</u>](https://onlinefontconverter.com/) để convert sang các định dạng font.
+
+> 💡 **Cập nhật:** hiện chỉ cần **`.woff2`** (fallback `.woff`) — mọi trình duyệt hiện đại đều hỗ trợ; `.eot/.svg/.ttf` đã lỗi thời, không cần tạo nữa.
 
 **Lời khuyên:**
 
@@ -189,7 +191,7 @@ Và thêm thuộc tính “background-position: *value*;”
 
 Để tối ưu thời gian build theme và tăng hiệu suất bạn nên sử dụng tool khá phổ biến đó là [<u>Grunt</u>](https://gruntjs.com/).. Grunt sẽ giúp cho việc debug, và tìm chính xác đến source file cần edit 1 cách nhanh chóng. Magento 2 tích hợp Grunt để render từ .less sang css.
 
-**Cách** [**<u>setup Grunt</u>**](https://devdocs.magento.com/guides/v2.0/frontend-dev-guide/css-topics/css_debug.html) **.**
+**Cách** [**<u>setup Grunt</u>**](https://developer.adobe.com/commerce/frontend-core/guide/) **.**
 
 Grunt là một bộ xử lý dựa trên ngôn ngữ javascript, nó làm đơn giản hóa công việc lặp đi lặp lại. Trong trường hợp này sẽ là: xem, biên dịch, dọn dẹp…
 
@@ -269,7 +271,7 @@ Chi tiết: http://lesscss.org/
 
 Bạn cũng có thể kết hợp SASS với Gulp.
 
-Nguồn tham khảo: [<u>http://lesscss.org</u>](http://lesscss.org), https://devdocs.magento.com/guides/v2.0/frontend-dev-guide/css-topics/css\_debug.html
+Nguồn tham khảo: [<u>http://lesscss.org</u>](http://lesscss.org), https://developer.adobe.com/commerce/frontend-core/guide/
 
 ---
 
@@ -328,7 +330,7 @@ Với server side Less compilation mode:
 
 # GRUNT
 Grunt
-Cài đặt và sử dụng: Tham khảo https://devdocs.magento.com/guides/v2.0/frontend-dev-guide/css-topics/css_debug.html
+Cài đặt và sử dụng: Tham khảo https://developer.adobe.com/commerce/frontend-core/guide/
 Ưu điểm: Debug dễ hơn. Nhìn được source map file less.
 
 # Magento UI library
@@ -435,10 +437,10 @@ Tìm hiểu tác dụng của .lib-css();
 =>  Tìm hiểu thêm các file còn lại trong source/lib/_navigation.less
 
 # Reference
-https://devdocs.magento.com/guides/v2.0/frontend-dev-guide/css-topics/css-overview.html
+https://developer.adobe.com/commerce/frontend-core/guide/
 
 Tham khảo conding standard:
-https://devdocs.magento.com/guides/v2.2/coding-standards/code-standard-less.html
+https://developer.adobe.com/commerce/php/coding-standards/
 
 # END.
 Thank you!

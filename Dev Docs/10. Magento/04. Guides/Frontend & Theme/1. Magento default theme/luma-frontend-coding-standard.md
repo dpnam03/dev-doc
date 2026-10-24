@@ -227,54 +227,54 @@ menuservice =>special-menu, special-nav
 
 -Đối với các task dài hơi (trên 1 tuần) Các dev cần setup grunt cho server để giảm thiểu thời gian khi render các static file (JS, css, image) – Nếu tài khoản ko đủ quyền, cần thảo luận với KH để cài.
 
--Hạn chế khởi tạo các object lặp đi lặp lại trên các template. (tuy nhiên đối với những khách hàng khó tính và check code của mình thì k nên sử dụng cách khởi tạo object trong các template
+- Hạn chế khởi tạo object lặp đi lặp lại trong template, và **không dùng `ObjectManager` trực tiếp** trong template (anti-pattern):
 
-Vd: mình muốn load 1 product by id.
-
-Thường trên template hay làm thế này
-
+```php
+// ❌ KHÔNG làm thế này trong template
 $objectManager = \Magento\Framework\App\ObjectManager::getInstance();
+$productObj = $objectManager->create(\Magento\Catalog\Model\Product::class)->load($_product->getId());
+```
 
-$productObj = $objectManager->create('Magento\Catalog\Model\Product')->load($\_product->getId());
+> ⚠️ **Cập nhật chuẩn mới (Magento 2.2+):** trước đây tài liệu này khuyên tạo **Helper** để load dữ liệu cho template. Cách đó **không còn được khuyến nghị** — Magento hiện dùng **ViewModel** (`Magento\Framework\View\Element\Block\ArgumentInterface`). Helper chỉ nên dùng cho logic dùng chung thực sự, không phải để cấp data cho template. Ngoài ra nên load product qua **`ProductRepository`** thay vì `ProductFactory->load()`.
 
-* Cần viết vào các block của template đấy, hoạc tạo 1 helper đẻ viết hàm khởi tạo trong construc, sau đó trong template gọi function đã dc khởi tạo ra,
+**Cách đúng — dùng ViewModel:**
 
-Ví dụ: tạo 1 helper để viết 1 function load product by ID. (Sau khi viết xong mình có thể sử dụng lại function này nhiều lần).
-
+```php
 <?php
+namespace Bss\CatalogWidget\ViewModel;
 
-namespace Bss\CatalogWidget\Helper;
+use Magento\Framework\View\Element\Block\ArgumentInterface;
+use Magento\Catalog\Api\ProductRepositoryInterface;
 
-class Data extends \Magento\Framework\App\Helper\AbstractHelper
-
+class ProductData implements ArgumentInterface
 {
+    public function __construct(
+        private readonly ProductRepositoryInterface $productRepository
+    ) {}
 
-protected $productloader;
-
-public function \_\_construct(
-
-\Magento\Framework\App\Helper\Context $context,
-
-\Magento\Catalog\Model\ProductFactory $productloader
-
-) {
-
-parent::\_\_construct($context);
-
-$this->productloader = $productloader;
-
+    public function getProductById(int $id)
+    {
+        return $this->productRepository->getById($id);
+    }
 }
+```
 
-public function getLoadProduct($id)
+Khai báo ViewModel cho block qua layout XML:
 
-{
+```xml
+<referenceBlock name="your.block">
+    <arguments>
+        <argument name="product_data" xsi:type="object">
+            Bss\CatalogWidget\ViewModel\ProductData
+        </argument>
+    </arguments>
+</referenceBlock>
+```
 
-return $this->productloader->create()->load($id);
+Gọi trong template:
 
-}
-
-ngoai frontend co the template co the goi ra nhu sau
-
-$bssCataloghelper = $this->helper('Bss\CatalogWidget\Helper\Data');
-
-$productObj = $bssCataloghelper->getLoadProduct($productID));
+```php
+/** @var \Bss\CatalogWidget\ViewModel\ProductData $viewModel */
+$viewModel = $block->getData('product_data');
+$productObj = $viewModel->getProductById($productId);
+```
