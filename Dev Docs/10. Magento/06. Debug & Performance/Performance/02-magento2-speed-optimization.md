@@ -10,7 +10,7 @@ tags: [performance, core-web-vitals, lcp, inp, cls, ttfb, optimization]
 
 # Magento 2 Speed & Performance Optimization
 
-‌**Magento 2 Speed Optimization**
+## ‌Magento 2 Speed Optimization
 
 **![](images/m2speed-01.png)**
 
@@ -20,7 +20,7 @@ tags: [performance, core-web-vitals, lcp, inp, cls, ttfb, optimization]
 
 - Google sẽ ưu tiên hiển thị trang có tốc độ cao lên trên trang kết quả tìm kiếm.
 
-**CORE WEB VITALS**
+## CORE WEB VITALS
 
 **-** Core Web Vitals là những chỉ số được đo lường bởi Chrome UX Report và Google Search Console để đánh giá hiệu suất website và SEO. Mỗi chỉ số sẽ đánh giá một mặt nào đó về trải nghiệm người dùng cho một trang web nào đó, tương ứng với các yếu tố xếp hạng như:
 
@@ -36,7 +36,7 @@ LCP https://web.dev/articles/lcp
 
 INP https://web.dev/articles/inp
 
-CLS [<u>https://web.dev/articles/cls</u>](https://web.dev/articles/cls)
+CLS [https://web.dev/articles/cls](https://web.dev/articles/cls)
 
 ![](images/m2speed-02.png)
 
@@ -56,9 +56,9 @@ vd. TTFB có time đo được là 0.8s FCP có time là 1.4s, LCP có time là 
 
 => Do vậy việc tối tưu TTFB là chỉ số ưu tiên ban đầu, nhằm tiền đề để optimize các chỉ số khác đằng sau nó.
 
-<u>Ref: https://web.dev/articles/optimize-ttfb</u>
+Ref: https://web.dev/articles/optimize-ttfb
 
-**‌FORM ELEMENTS**
+## ‌FORM ELEMENTS
 
 **-** Để tối ưu Speed cho 1 website, có rất nhiều yếu tố cấu thành để có được 1 kết quả tối ưu sau cùng.
 
@@ -74,7 +74,7 @@ vd. TTFB có time đo được là 0.8s FCP có time là 1.4s, LCP có time là 
 
 + Network
 
-**‌Server Configuration Standard**
+### ‌Server Configuration Standard
 
 ‌ + Magento latest version
 
@@ -99,63 +99,73 @@ vd. TTFB có time đo được là 0.8s FCP có time là 1.4s, LCP có time là 
 
 - **reference Mysql configuration**: https://magento.stackexchange.com/questions/338043/how-to-optimize-mysql-for-best-magento-2-performance-and-increase-indexing-speed
 
-‌**PHP**
+### ‌PHP
 
 * Limit php ext. (The presence of any profiling and debugging extensions can negatively impact the response time of your pages. As an example, an active xDebug module without any debug session can increase the page response time by up to 30%.)
 * Enable Opcode caching
 
-*opcache.memory\_consumption=512 <todo>*
-
-*opcache.max\_accelerated\_files=60000 // Max 1000000*
+```ini
+opcache.memory_consumption=512 <todo>
+opcache.max_accelerated_files=60000 // Max 1000000
+```
 
 { 223, 463, 983, 1979, 3907, 7963, 16229, 32531, 65407, 130987, 262237, 524521, 1048793 }
 
-*opcache.consistency\_checks=0opcache.validate\_timestamps=0opcache.enable\_cli=1*
+```ini
+opcache.consistency_checks=0
+opcache.validate_timestamps=0
+opcache.enable_cli=1
+```
 
 * Sử dụng các syntax code được đánh giá tối ưu hơn về speed
   + Compared to count(), strlen(), and sizeof(), [isset()](https://php.net/manual/en/function.isset.php) is a faster and simpler way to determine if a value is greater than 0.
   + Since === only checks for a closed range, it is faster than using == for comparisons
   + Sử dụng single quotes thay vì double quotes
   + …
-* Reference: [<u>https://experienceleague.adobe.com/en/docs/commerce-operations/performance-best-practices/software</u>](https://experienceleague.adobe.com/en/docs/commerce-operations/performance-best-practices/software)
+* Reference: [https://experienceleague.adobe.com/en/docs/commerce-operations/performance-best-practices/software](https://experienceleague.adobe.com/en/docs/commerce-operations/performance-best-practices/software)
 * Có 1 số thông số khi config server ta cần lưu ý như sau:
 * **Đối với PHP setting** (php.ini)
 
-memory\_limit=1G *// Đấy giá trị trung bình mà magento suggest, tuy nhiên đối với những site có nhiều tác vụ, hoạc cần xử lý các request có khối lượn công việc lớn thì nên để 2GB => A suggest là nên để 2GB*
+```ini
+memory_limit=1G // Đấy giá trị trung bình mà magento suggest, tuy nhiên đối với những site có nhiều tác vụ, hoạc cần xử lý các request có khối lượn công việc lớn thì nên để 2GB => A suggest là nên để 2GB
 
-//Realpath\_cache //Sử dụng để lưu lại path thực của file php vào cache, thay vì mỗi lần thực hiện logic nó sẽ duyệt qua folder code để tìm đúng đường dẫn file.
+//Realpath_cache //Sử dụng để lưu lại path thực của file php vào cache, thay vì mỗi lần thực hiện logic nó sẽ duyệt qua folder code để tìm đúng đường dẫn file.
 
-realpath\_cache\_size=10M
-
-realpath\_cache\_ttl=7200
+realpath_cache_size=10M
+realpath_cache_ttl=7200
+```
 
 **Note**: https://www.php.net/manual/en/ini.core.php#ini.realpath-cache-size
 
-=> Nếu **safe\_mode** or **open\_basedir** được enabled trong php.ini, thì realpath\_cache is not used. => do vậy hãy đảm bảo là mình đã check config file php.ini trước.
+=> Nếu **safe_mode** or **open_basedir** được enabled trong php.ini, thì realpath_cache is not used. => do vậy hãy đảm bảo là mình đã check config file php.ini trước.
 
 * Setup APCU extension (Option hỗ trợ cho opcode caching)
 
 Check /etc/php/(version like 7.2)/cli/conf.d directory and find 20-apcu.ini. If you dont see it there, You need to install it. To install follow bellow command:
 
-**sudo apt-get install php7.2-apcu**
+```bash
+sudo apt-get install php7.2-apcu
+```
 
 Thêm dòng dưới đây vào php.ini.
 
-**extension=apcu.so**
+```ini
+extension=apcu.so
+```
 
 Sau khi setup APCU, thì nên sử dụng với composer để cho hiệu suất tối đa.
 
-[<u>https://experienceleague.adobe.com/en/docs/commerce-operations/performance-best-practices/deployment-flow#preprocess-dependency-injection-instructions</u>](https://experienceleague.adobe.com/en/docs/commerce-operations/performance-best-practices/deployment-flow#preprocess-dependency-injection-instructions)
+[https://experienceleague.adobe.com/en/docs/commerce-operations/performance-best-practices/deployment-flow#preprocess-dependency-injection-instructions](https://experienceleague.adobe.com/en/docs/commerce-operations/performance-best-practices/deployment-flow#preprocess-dependency-injection-instructions)
 
-‌**Use Varnish for FPC**
+### ‌Use Varnish for FPC
 
-**Use redis for default and session cache**
+### Use redis for default and session cache
 
-**CDN**
+### CDN
 
 *Tham khảo lại phần cache ở document này Để sử dụng cache 1 cách hiệu quả, cũng sẽ có những TH chúng ta không phải lúc nào cũng dùng cdn, Tùy vào nhu cầu bán hàng thực tế của website để đưa ra option tối ưu hơn.*
 
-[*<u>https://docs.google.com/document/d/1Y6-52Z-pUGDra\_mBov17M2yUlNrxzUI1MZST-mRrXgU/edit#heading=h.xuzmf9b7m10h</u>*](https://docs.google.com/document/d/1Y6-52Z-pUGDra_mBov17M2yUlNrxzUI1MZST-mRrXgU/edit#heading=h.xuzmf9b7m10h)
+[*https://docs.google.com/document/d/1Y6-52Z-pUGDra_mBov17M2yUlNrxzUI1MZST-mRrXgU/edit#heading=h.xuzmf9b7m10h*](https://docs.google.com/document/d/1Y6-52Z-pUGDra_mBov17M2yUlNrxzUI1MZST-mRrXgU/edit#heading=h.xuzmf9b7m10h)
 
 CDN không phải lúc nào cũng cần setup, cũng sẽ tùy vào điều kiện cụ thể.
 
@@ -163,7 +173,7 @@ CDN không phải lúc nào cũng cần setup, cũng sẽ tùy vào điều ki�
 
 https://experienceleague.adobe.com/en/docs/commerce-operations/performance-best-practices/software
 
-‌**Optimize Log**
+### ‌Optimize Log
 
 + setup logrotate (max 7 days)
 
@@ -181,7 +191,7 @@ https://experienceleague.adobe.com/en/docs/commerce-operations/performance-best-
 
 *- Clean db log.*
 
-‌**Appication - optimize**
+### ‌Appication - optimize
 
 ‌- Review module/extendsion
 
@@ -199,19 +209,20 @@ https://experienceleague.adobe.com/en/docs/commerce-operations/performance-best-
 
 - Asynchronous configuration save:
 
+```bash
 bin/magento setup:config:set --config-async 1
-
 bin/magento queue:consumers:start saveConfigProcessor --max-messages=1
+```
 
 - Deferred stock update: Stores > Settings > Configuration > Catalog > Inventory > Product Stock Options > Use Deferred Stock Update (work with back order only)
 
 - Limit Grid records
 
-*Configuration Best practices:* [*<u>https://experienceleague.adobe.com/en/docs/commerce-operations/performance-best-practices/configuration</u>*](https://experienceleague.adobe.com/en/docs/commerce-operations/performance-best-practices/configuration)
+*Configuration Best practices:* [*https://experienceleague.adobe.com/en/docs/commerce-operations/performance-best-practices/configuration*](https://experienceleague.adobe.com/en/docs/commerce-operations/performance-best-practices/configuration)
 
-*Detect unuse resource:* [*<u>https://docs.google.com/document/d/1yCXAqQyIFwOfZZwZ0gH2OeB4J1gQykx-dZGz-9fYh7k/edit</u>*](https://docs.google.com/document/d/1yCXAqQyIFwOfZZwZ0gH2OeB4J1gQykx-dZGz-9fYh7k/edit)
+*Detect unuse resource:* [*https://docs.google.com/document/d/1yCXAqQyIFwOfZZwZ0gH2OeB4J1gQykx-dZGz-9fYh7k/edit*](https://docs.google.com/document/d/1yCXAqQyIFwOfZZwZ0gH2OeB4J1gQykx-dZGz-9fYh7k/edit)
 
-‌**CORE WEB VITALS -- LCP https://web.dev/articles/lcp**
+## ‌CORE WEB VITALS -- LCP https://web.dev/articles/lcp
 
 ![](images/m2speed-06.png)
 
@@ -227,7 +238,7 @@ bin/magento queue:consumers:start saveConfigProcessor --max-messages=1
 
 **Font Display:** Fallback, Swap, Block
 
-‌([<u>https://www.creativebloq.com/advice/control-web-typography-with-css-font-display</u>](https://www.creativebloq.com/advice/control-web-typography-with-css-font-display))
+‌([https://www.creativebloq.com/advice/control-web-typography-with-css-font-display](https://www.creativebloq.com/advice/control-web-typography-with-css-font-display))
 
 ‌- Remove JS không sử dụng trên site
 
@@ -251,7 +262,7 @@ Load conditional CSS with media attributes
 
 Load custom fonts locally
 
-(ref: [<u>https://blog.logrocket.com/11-best-practices-eliminate-render-blocking-resources/</u>](https://blog.logrocket.com/11-best-practices-eliminate-render-blocking-resources/))
+(ref: [https://blog.logrocket.com/11-best-practices-eliminate-render-blocking-resources/](https://blog.logrocket.com/11-best-practices-eliminate-render-blocking-resources/))
 
 - critical CSS
 
@@ -259,9 +270,10 @@ Load custom fonts locally
 
 Example:
 
+```html
 < link rel=”preload” as=”image” href=”important.png”/ >
-
 < link rel=”preload” as=”style” href=”combined.css” >
+```
 
 **EX**: Xử lý TH module page builder.
 
@@ -273,11 +285,11 @@ Example:
 
 - Chỉ call resource khi có page sử dụng đến
 
-[<u>https://bitbucket.org/bssdev03/v549/commits/d4787c82be09a2348f6ce8b613e20dfb3bbadc8c</u>](https://bitbucket.org/bssdev03/v549/commits/d4787c82be09a2348f6ce8b613e20dfb3bbadc8c)
+[https://bitbucket.org/bssdev03/v549/commits/d4787c82be09a2348f6ce8b613e20dfb3bbadc8c](https://bitbucket.org/bssdev03/v549/commits/d4787c82be09a2348f6ce8b613e20dfb3bbadc8c)
 
-(task xử lý [<u>https://pms.bssgroup.vn/default/viewtaskdetail/v549-397</u>](https://pms.bssgroup.vn/default/viewtaskdetail/v549-397))
+(task xử lý [https://pms.bssgroup.vn/default/viewtaskdetail/v549-397](https://pms.bssgroup.vn/default/viewtaskdetail/v549-397))
 
-‌**CORE WEB VITALS -- CLS https://web.dev/articles/cls**
+## ‌CORE WEB VITALS -- CLS https://web.dev/articles/cls
 
 ![](images/m2speed-08.png)
 
@@ -309,7 +321,7 @@ content modify dom => sử dụng block holder để giữ chỗ conent.
 
 ![](images/m2speed-09.png)
 
-‌**CORE WEB VITALS -- INP https://web.dev/articles/inp**
+## ‌CORE WEB VITALS -- INP https://web.dev/articles/inp
 
 ![](images/m2speed-10.png)
 
@@ -323,7 +335,7 @@ content modify dom => sử dụng block holder để giữ chỗ conent.
 * Xóa bỏ những plugin, tính năng, hiệu ứng màu mè và rườm rà… không thực sự cần thiết với website của bạn. Hạn chế sử dụng ảnh GIF, icon font (Font Awesome…), web font nói chung và Google Fonts nói riêng.
 * Đừng để quá nhiều nội dung hiển thị trên cùng một trang (DOM quá lớn).. Nếu như content cần hiển thị nhiều thì nên phân trang
 
-‌**External Resource**
+## ‌External Resource
 
 ‌Là các resource mà website cần tải về từ các bên thứ 3 như:
 
@@ -341,15 +353,15 @@ content modify dom => sử dụng block holder để giữ chỗ conent.
 
 - **vd2**. Xử lý theme liên quan đến amazon payment method. Module amazone payment file template config.phtml. sử dụng để render button ở mọi page (minicart) nhưng 1 số design của kh sẽ k cần thiết render thằng này. do vậy, thay vì ẩn button thì mình nên xử lý lại dể remove hoàn toàn việc render button ở mỗi page đi. Chỉ render resource trên page cần thiết (checkout, cart page)
 
-**‌Coding Tips**
+## ‌Coding Tips
 
-**1 Số ví dụ thực tế trong code**
+### 1 Số ví dụ thực tế trong code
 
 **(Ở Slide sharing)**
 
-[<u>https://workdrive.zohopublic.com/show/publish/rl69pc1b2cf1659ad47db97d59c1fcbc6ab52</u>](https://workdrive.zohopublic.com/show/publish/rl69pc1b2cf1659ad47db97d59c1fcbc6ab52)
+[https://workdrive.zohopublic.com/show/publish/rl69pc1b2cf1659ad47db97d59c1fcbc6ab52](https://workdrive.zohopublic.com/show/publish/rl69pc1b2cf1659ad47db97d59c1fcbc6ab52)
 
-‌**Reference**
+## ‌Reference
 
 ‌https://experienceleague.adobe.com/en/docs/commerce-operations/performance-best-practices/configuration
 

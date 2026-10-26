@@ -29,9 +29,9 @@ Magento Frontend
 
 =============================&&===============================
 
-1. Code Standard
+## 1. Code Standard
 
-a.) Block
+### a.) Block
 
 Khi làm việc với **Block** tạo ra các phương thức, cần viết sao cho phương thức đó có thể sau này dễ dàng extend được.
 
@@ -43,7 +43,7 @@ Khi làm việc với **Block** tạo ra các phương thức, cần viết sao 
 
 => Khi Rewrite Block, chỉ nên rewrite phương thức bạn cần thay đổi, không nên copy toàn bộ code trong file base default.
 
-b.) Với template
+### b.) Với template
 
 - Khi viết template trong magento cần lưu ý những điều sau
 
@@ -69,9 +69,17 @@ Thì block của template này cũng nên có dạng đường dẫn tương t�
 
 **Ví dụ:**
 
-+ Nên viết: <span><?php echo \_\_(“Customer name”); ?></span>
++ Nên viết:
 
-+ Không nên viết: <span>Customer name</span>
+```php
+<span><?php echo __("Customer name"); ?></span>
+```
+
++ Không nên viết:
+
+```html
+<span>Customer name</span>
+```
 
 Điều này sẽ giúp cho đoạn text có thể hoạt động linh hoạt trong nhiều store, nhiều website với các ngôn ngữ khác nhau
 
@@ -83,13 +91,15 @@ Template đang sử dụng được trỏ đến Block class: **Bss\Custom\Block
 
 * Trên đầu của file template khai báo như sau:
 
-**/\*\* @varBss\Custom\Block\Product\Item $block \*/**
+```php
+/** @varBss\Custom\Block\Product\Item $block */
+```
 
 + Nắm được cấu trúc các thẻ để tránh viết sai.
 
 vd: thẻ div là thẻ block, thẻ a là thẻ inline. => Thể theo quy tắc khai báo cấu trúc html, thì thẻ block sẽ k được phép nằm trong thẻ inlinne, có nghĩa là thẻ div k được khai báo trong thẻ a.
 
-**c.) Với Layout/Theme**
+### c.) Với Layout/Theme
 
 - Những lưu ý khi làm viêc với Layout/Theme
 
@@ -105,7 +115,7 @@ vd: thẻ div là thẻ block, thẻ a là thẻ inline. => Thể theo quy tắc
 
 Ở M1 các file các file layout như: local.xml, catalog.xml, reviews.xml,…v.v
 
-Ở M2 các file như: default.xml, catalog\_product\_view.xml,…v.v
+Ở M2 các file như: default.xml, catalog_product_view.xml,…v.v
 
 ![](images/luma-std-01.png)
 
@@ -113,23 +123,23 @@ vd: thẻ div là thẻ block, thẻ a là thẻ inline. => Thể theo quy tắc
 
 + Tránh tình trạng định nghĩa block/container lung tung.
 
-**d. Với CSS/Styles/Class**
+### d. Với CSS/Styles/Class
 
 - Không được tao thêm các file không theo chuẩn của magento trong theme (m2):
 
 +**Ví dụ**: custom.less custom.css,
 
-+ Trong magento 2 ,file chuẩn đi theo module luôn là **\_modules.less**, Chỉ cần khai báo file này trong đường dẫn của module ../web/css/source/\_modules.less => khi render hệ thống sẽ tự động gom tất cả code ở những file như thế này và combine ra 2 file css (style-m và style-l)
++ Trong magento 2 ,file chuẩn đi theo module luôn là **_modules.less**, Chỉ cần khai báo file này trong đường dẫn của module ../web/css/source/_modules.less => khi render hệ thống sẽ tự động gom tất cả code ở những file như thế này và combine ra 2 file css (style-m và style-l)
 
 -Khi sửa Style cho các thành phần trên site cần xác định rõ phần cần sửa thuộc phần nào, để từ đó sửa css và đúng module thích hợp.
 
 +**Ví dụ**:
 
-.) Khi sửa style cho phần review thì cần sửa file less ở module review (Magento\_Review).
+.) Khi sửa style cho phần review thì cần sửa file less ở module review (Magento_Review).
 
-.) Khi sửa các thành phần thuộc page category cần sửa trong file \_listing.less cua module catalog (Magento\_Catalog).
+.) Khi sửa các thành phần thuộc page category cần sửa trong file _listing.less cua module catalog (Magento_Catalog).
 
-.) Khi sửa style cho các thành phần thuộc page product page cần sửa trong file \_modules.less thuộc module catalog (Magento\_Catalog)
+.) Khi sửa style cho các thành phần thuộc page product page cần sửa trong file _modules.less thuộc module catalog (Magento_Catalog)
 
 .) …
 
@@ -137,7 +147,7 @@ vd: thẻ div là thẻ block, thẻ a là thẻ inline. => Thể theo quy tắc
 
 Ví dụ: Không đặt tên class theo kiểu cá nhân:
 
-++ who\_are\_we
+++ who_are_we
 
 ++ cms-video-production-type
 
@@ -155,9 +165,9 @@ Ví dụ: Không đặt tên class theo kiểu cá nhân:
 
 - Khi đã extend class từ các block khác, k được phép css tiếp cho class đấy, mà cần tạo thêm 1 class khác cùng cấp hoạc cho element parent để css riêng, vì css tiếp cho class được Extend nó sẽ ảnh hưởng đến các block html có chứa class đấy
 
-2. Case study
+## 2. Case study
 
-<u>a. Cách đặt tên class</u>
+### a. Cách đặt tên class
 
 \*). Project BSS Geek, http://139.162.52.207/bssagency/index.php/services/
 
@@ -177,11 +187,11 @@ menuservice =>special-menu, special-nav
 
 \*). Project V64 (Alicante) http://retroeurope.net/alicante/
 
-- .what\_are\_specker\_videos
+- .what_are_specker_videos
 
 - #myDropdown
 
-- .who\_are\_we, …
+- .who_are_we, …
 
 ![](images/luma-std-03.png)
 
@@ -197,7 +207,7 @@ menuservice =>special-menu, special-nav
 
 **Ví dụ: header-home-top-left, menu-cate-left-bottom,..v.v**
 
-<u>b. Cách triển khai HTML</u>
+### b. Cách triển khai HTML
 
 \* Project V64(Alicante)
 
@@ -209,7 +219,7 @@ menuservice =>special-menu, special-nav
 
 \*) Project
 
-**3. Định hướng dữ liệu**
+## 3. Định hướng dữ liệu
 
 - Khi viết nội dung và template cho page.
 
@@ -223,7 +233,7 @@ menuservice =>special-menu, special-nav
 
 * Từ đó mình có thể có những giải pháp tối ưu để xử lý template trước khi tới khách hàng. Có thể chưa là cách tốt nhất, nhưng ít nhất mình nên nghĩ dc nó đang tối ưu so với thông thường.
 
-**4. Một số lưu ý khi làm việc với frontend trên M2**
+## 4. Một số lưu ý khi làm việc với frontend trên M2
 
 -Đối với các task dài hơi (trên 1 tuần) Các dev cần setup grunt cho server để giảm thiểu thời gian khi render các static file (JS, css, image) – Nếu tài khoản ko đủ quyền, cần thảo luận với KH để cài.
 

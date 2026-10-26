@@ -18,31 +18,31 @@ Sự ra đời của Hyva là để khắc phục các nhược điểm của ng
 
 # 2. Ưu, nhược điểm của Hyva
 
-**A. Ưu điểm:**
+## A. Ưu điểm:
 
-**2.1. Tốc độ xử lý trang web**
+### 2.1. Tốc độ xử lý trang web
 
 Hyva hoạt động tốt ở bất kỳ loại thiết bị nào, ngay cả với tốc độ tải chậm.
 
-**2.2. Trải nghiệm người dùng.**
+### 2.2. Trải nghiệm người dùng.
 
 Với tiêu chuẩn thời gian tải trang là không quá 2 giây ở trên desktop, 4 giây ở mobile; Hyva đã rút ngắn thời gian tải của mình gần như ngay lập tức ở tất cả các nền tảng, với điểm số 100/100 trên Google PageSpeed (trong điều kiện tối ưu nhất).
 
-**2.3. Thời gian tung sản phẩm ra thị trường**
+### 2.3. Thời gian tung sản phẩm ra thị trường
 
 Sự đơn giản của kiến trúc xây dựng giao diện mà Hyva đem lại sẽ giúp cho lập trình viên có thể dễ dàng thêm các tính năng mới, phát hiện và bảo trì lỗi với sự trợ giúp của các công cụ phát triển web tiêu chuẩn và hiện đại.
 
-**2.4. Khả năng tương thích**
+### 2.4. Khả năng tương thích
 
 Mặc dù được phát triển không lâu, Hyva đã và đang được các extensions bên thức ba lựa chọn hỗ trợ tương thích. Vậy nên ta có thể tin tưởng mức độ ổn định và khả năng tương thích tốt của module này với Magento 2 trong tương lai.
 
-**B. Nhược điểm:**
+## B. Nhược điểm:
 
-**2.5. Yêu cầu về phiên bản**
+### 2.5. Yêu cầu về phiên bản
 
 Hyva theme yêu cầu Magento 2.4 hoặc cao hơn,...
 
-**2.6. Thanh toán (Checkout page)**
+### 2.6. Thanh toán (Checkout page)
 
 Hyva theme hỗ trợ fallback chức năng thanh toán về Luma, nghĩa là bạn không phải lo vấn đề tương thích với các extensions bên thứ 3 liên quan đến checkout, payment,...
 
@@ -50,7 +50,7 @@ Hyva theme hỗ trợ fallback chức năng thanh toán về Luma, nghĩa là b�
 
 *Cả hai đều là ứng cử viên sáng giá cho giải pháp thay thế chức năng Checkout của trang web, và đều tương thích tốt với Hyva theme.*
 
-**2.7. Hỗ trợ từ bên thứ ba**
+### 2.7. Hỗ trợ từ bên thứ ba
 
 Hiện tại số lượng các extensions bên thứ 3 hỗ trợ Hyva theme chưa nhiều, bạn sẽ cần một hoặc nhiều hơn các lập trình viên để xử lý vấn đề tương thích với các extensions đó. Cụ thể như sau:
 
@@ -58,7 +58,7 @@ Phần lớn các module của Magento được viết dựa trên kiến trúc 
 
 Khi sử dụng Hyva Theme (với công nghệ áp dụng và kiến trúc khác LUMA), tất cả các file javascript, templates và css sẽ cần phải viết lại.
 
-[<u>Hyvä Themes compatibility module library</u>](https://gitlab.hyva.io/hyva-public/module-tracker/-/boards) => Đây thực chất là danh sách giúp theo dõi tất cả các extensions đã tương thích, được đệ trình tới cộng đồng mã nguồn mở Hyva theme. Bạn có thể theo dõi danh sách này, lựa chọn cập nhật extension mình đang dùng mà đã có bản cập nhật tương thích với Hyva theme.
+[Hyvä Themes compatibility module library](https://gitlab.hyva.io/hyva-public/module-tracker/-/boards) => Đây thực chất là danh sách giúp theo dõi tất cả các extensions đã tương thích, được đệ trình tới cộng đồng mã nguồn mở Hyva theme. Bạn có thể theo dõi danh sách này, lựa chọn cập nhật extension mình đang dùng mà đã có bản cập nhật tương thích với Hyva theme.
 
 # 3. Khi nào nên sử dụng Hyva Theme?
 
@@ -75,7 +75,7 @@ Dựa trên ưu và nhược điểm hiện tại của Hyva theme, ta có thể
 
 Các bước setup đều được hướng dẫn ở document chính thức của Hyva theme:
 
-[<u>https://docs.hyva.io/hyva-themes/getting-started/index.html</u>](https://docs.hyva.io/hyva-themes/getting-started/index.html)
+[https://docs.hyva.io/hyva-themes/getting-started/index.html](https://docs.hyva.io/hyva-themes/getting-started/index.html)
 
 Trước khi cài, bạn cần chuẩn bị môi trường như sau:
 
@@ -88,8 +88,8 @@ Trước khi cài, bạn cần chuẩn bị môi trường như sau:
 # 1. Alpine JS và Tailwind CSS
 
 * Trước khi mình bắt đầu với hyva theme thì cùng xem qua các tech stack chính được sử dụng cho hyva theme là gì. Hãy check document ở đây nhé
-* Alpine JS: [<u>https://shorturl.at/iu013</u>](https://shorturl.at/iu013)
-* Tailwind Css: [<u>https://shorturl.at/pstQS</u>](https://shorturl.at/pstQS)
+* Alpine JS: [https://shorturl.at/iu013](https://shorturl.at/iu013)
+* Tailwind Css: [https://shorturl.at/pstQS](https://shorturl.at/pstQS)
 
 # 2. Kiến trúc code theme Hyva
 
@@ -136,15 +136,15 @@ Trước khi cài, bạn cần chuẩn bị môi trường như sau:
 | **Một số trường hợp chú ý khi làm việc với Hyva thực tế** | | |
 | --- | --- | --- |
 | Case | Part | Implement |
-| Customize lại module custom | Layout handle xml | - Overwrite lại file trong theme (/layout/override/base/<handle>.xml)  vd: override lại file default.xml của module catalog /Magento\_Catalog/layout/override/base/default.xml |
+| Customize lại module custom | Layout handle xml | - Overwrite lại file trong theme (/layout/override/base/<handle>.xml)  vd: override lại file default.xml của module catalog /Magento_Catalog/layout/override/base/default.xml |
 | Template | - Copy file template của module vào theme rồi sửa như bình thường |
 | css | - Các phần custom css/js đều nên viết luôn vào theme. |
 | Code logic khác (Block/controller/model/...) | - Vẫn viết vào module như bình thường |
-| Customize lại module bên thứ 3 | Layout handle xml | - Tạo các handle mới với prefix là hyva\_\*.xml  vd: default.xml => hyva\_default.xml |
+| Customize lại module bên thứ 3 | Layout handle xml | - Tạo các handle mới với prefix là hyva_\*.xml  vd: default.xml => hyva_default.xml |
 | Template | - Copy file template của module vào module custom cho hyva rồi sửa như bình thường |
 | css | - Các phần custom css/js nên viết vào theme. |
-| Code logic khác (Block/controller/model/...) | - Tạo module khác để rewrite. Tên module sẽ là Hyva\_<OriginModule> |
-| Viết mới logic module | Layout handle xml | - Viết như bình thường  Tạo các handle mới với prefix là hyva\_\*.xml  vd: default.xml => hyva\_default.xml |
+| Code logic khác (Block/controller/model/...) | - Tạo module khác để rewrite. Tên module sẽ là Hyva_<OriginModule> |
+| Viết mới logic module | Layout handle xml | - Viết như bình thường  Tạo các handle mới với prefix là hyva_\*.xml  vd: default.xml => hyva_default.xml |
 | Template | - Viết như bình thường |
 | css | - Tạo event theo docs của hyva để add file style cho module |
 | Code logic khác (Block/controller/model/...) | - Viết như bình thường |
@@ -155,7 +155,7 @@ Trước khi cài, bạn cần chuẩn bị môi trường như sau:
 
 Dùng file **tailwind.config.js** để tùy biến các unit value và color value.
 
-[<u>https://tailwindcss.com/docs/configuration</u>](https://tailwindcss.com/docs/configuration)
+[https://tailwindcss.com/docs/configuration](https://tailwindcss.com/docs/configuration)
 
 ### 1.1. Theme
 
@@ -169,7 +169,7 @@ Dùng để tùy biến tất cả các đơn vị màu sắc, khoảng cách,..
 
 **screens** cho phép tùy biến hoặc thêm các breakpoint class trong project. Sử dụng config này để định nghĩa các breakpoint nếu như các breakpoint mặc định của tailwind không phù hợp với bạn.
 
-[<u>https://tailwindcss.com/docs/screens</u>](https://tailwindcss.com/docs/screens)
+[https://tailwindcss.com/docs/screens](https://tailwindcss.com/docs/screens)
 
 ### 1.3. Colors
 
@@ -179,7 +179,7 @@ Dùng để tùy biến tất cả các đơn vị màu sắc, khoảng cách,..
 
 VD: định nghĩa **red** sẽ tự generate các class như **text-red**, **bg-red**, **border-red**,...
 
-[<u>https://tailwindcss.com/docs/customizing-colors</u>](https://tailwindcss.com/docs/customizing-colors)
+[https://tailwindcss.com/docs/customizing-colors](https://tailwindcss.com/docs/customizing-colors)
 
 ### 1.4. Spacing
 
@@ -205,9 +205,9 @@ Component nên chứa các class thành phần như button, radio, slider, form,
 
 Theme sẽ chứa các class của toàn bộ site layout, hoặc của một layout phức tạp.
 
-Để merge các tailwind config của custom module, tham khảo: [<u>https://docs.hyva.io/hyva-themes/compatibility-modules/tailwind-config-merging.html</u>](https://docs.hyva.io/hyva-themes/compatibility-modules/tailwind-config-merging.html)
+Để merge các tailwind config của custom module, tham khảo: [https://docs.hyva.io/hyva-themes/compatibility-modules/tailwind-config-merging.html](https://docs.hyva.io/hyva-themes/compatibility-modules/tailwind-config-merging.html)
 
-Check thuộc tính class tailwind ở đây [<u>https://nerdcave.com/tailwind-cheat-sheet</u>](https://nerdcave.com/tailwind-cheat-sheet)
+Check thuộc tính class tailwind ở đây [https://nerdcave.com/tailwind-cheat-sheet](https://nerdcave.com/tailwind-cheat-sheet)
 
 # 2. Js
 
@@ -215,7 +215,7 @@ Check thuộc tính class tailwind ở đây [<u>https://nerdcave.com/tailwind-c
 
 Hyva Theme có câu trả lời về vấn đề inline js.
 
-[<u>https://docs.hyva.io/hyva-themes/faqs/can-we-use-babel-move-inline-js.html</u>](https://docs.hyva.io/hyva-themes/faqs/can-we-use-babel-move-inline-js.html)
+[https://docs.hyva.io/hyva-themes/faqs/can-we-use-babel-move-inline-js.html](https://docs.hyva.io/hyva-themes/faqs/can-we-use-babel-move-inline-js.html)
 
 ![](images/hyva-07.png)
 
@@ -243,7 +243,7 @@ Tuy nhiên Hyva theme có viết một số các đoạn inline js lên attribut
 
 > ⚠️ **Cập nhật quan trọng:** CSP không còn là "chuyện tương lai/tham khảo". **Alpine CSP** (bản không cần `unsafe-eval`) nay **bắt buộc cho PCI-DSS** trên trang payment. Xem hướng dẫn migrate đầy đủ ở **[hyva-practice.md](hyva-practice.md)** → mục *Alpine CSP*. Đoạn mô tả bên dưới giữ lại để tham khảo bối cảnh.
 
-Được đề cập tới ở plugin [<u>CSP</u>](https://alpinejs.dev/advanced/csp) tại thời điểm viết tài liệu này, Alpine sử dụng một kỹ thuật cho phép bạn viết nội dung code javascript ở trên thuộc tính html (vd: x-on:click=”console.log()” )
+Được đề cập tới ở plugin [CSP](https://alpinejs.dev/advanced/csp) tại thời điểm viết tài liệu này, Alpine sử dụng một kỹ thuật cho phép bạn viết nội dung code javascript ở trên thuộc tính html (vd: x-on:click=”console.log()” )
 
 Kỹ thuật này vấp phải một vấn đề bảo mật của CSP: “unsafe-eval". Vậy nên, ở những phiên bản tới, **nếu như** plugin CSP được tích hợp vào Alpine. Ta **có thể** sẽ phải viết lại code theo một cấu trúc khác, bắt đầu với các khai báo x-data sẽ phải sử dụng **Alpine.data()** API và thay vì viết logic lên html attribute, ta sẽ phải gom chúng vào các function khác nhau ở trong **Alpine.data()**.
 
@@ -251,7 +251,7 @@ Khi sử dụng **Alpine.data()** để khai báo dữ liệu, data name phải 
 
 ![](images/hyva-08.png)
 
-***Note:*** *Trên* [*<u>github</u>*](https://github.com/alpinejs/alpine/issues/237) *đã bàn về vấn đề này rất kĩ. Giải pháp trên là những gì mà họ sẽ áp dụng chỉ dành cho những trường hợp yêu cầu về bảo mật. Hyva Theme vốn đã viết inline js ở các html element (nghĩa là đã vi phạm CSP) nên dev chỉ coi vấn đề này mang tính tham khảo là chủ yếu.*
+***Note:*** *Trên* [*github*](https://github.com/alpinejs/alpine/issues/237) *đã bàn về vấn đề này rất kĩ. Giải pháp trên là những gì mà họ sẽ áp dụng chỉ dành cho những trường hợp yêu cầu về bảo mật. Hyva Theme vốn đã viết inline js ở các html element (nghĩa là đã vi phạm CSP) nên dev chỉ coi vấn đề này mang tính tham khảo là chủ yếu.*
 
 ### 2.2.2. Data scope
 
@@ -261,31 +261,35 @@ Nhưng nếu như ta muốn truy cập x-data từ một nơi khác thì sao?
 
 **$data** thực chất là một tổ hợp các function sau:
 
-Alpine.mergeProxies(Alpine.closestDataStack(**node**));
+```js
+Alpine.mergeProxies(Alpine.closestDataStack(node));
+```
 
 hoặc
 
-Alpine.$data(**node**)
+```js
+Alpine.$data(node)
+```
 
 **node** ở đây là một html element cần access. Nếu như sử dụng với querySelector, ta có thể truy cập x-data từ mọi vị trí khác.
 
 ![](images/hyva-09.png)
 
-Link demo: [<u>https://jsfiddle.net/bouetp71/</u>](https://jsfiddle.net/bouetp71/)
+Link demo: [https://jsfiddle.net/bouetp71/](https://jsfiddle.net/bouetp71/)
 
 ### 2.2.3. Sử dụng Alpine.reactive và Alpine.effect
 
 **Alpine.effect()** và **Alpine.reactive()** là 2 chức năng quan trọng trong mô hình reactivity của Alpine js. Vậy nên ta cần phải nắm rõ cách thức hoạt động của nó.
 
-Một điều thú vị là toàn bộ module reactivity của Alpine js không do họ tự xây dựng, mà lại đến từ package [<u>@vue/reactivity</u>](https://github.com/vuejs/core/tree/main/packages/reactivity#readme). Mình sẽ share lại một bài viết để mọi người biết thêm được cách Vuejs thực sự hoạt động. Từ đó hình dung ra được Alpine js hoạt động như thế nào.
+Một điều thú vị là toàn bộ module reactivity của Alpine js không do họ tự xây dựng, mà lại đến từ package [@vue/reactivity](https://github.com/vuejs/core/tree/main/packages/reactivity#readme). Mình sẽ share lại một bài viết để mọi người biết thêm được cách Vuejs thực sự hoạt động. Từ đó hình dung ra được Alpine js hoạt động như thế nào.
 
-[<u>https://deepsource.io/blog/reactivity-in-vue/</u>](https://deepsource.io/blog/reactivity-in-vue/)
+[https://deepsource.io/blog/reactivity-in-vue/](https://deepsource.io/blog/reactivity-in-vue/)
 
 **Alpine.reactive()** cho phép bạn tạo ra một object có thể “reactive", nghĩa là mọi sự thay đổi lên object này sẽ tác động đến những object khác. Để thực hiện reactive giữa các object, ta phải dùng đến **Alpine.effect()**.
 
 Bắt đầu với ví dụ sau:
 
-[<u>https://jsfiddle.net/ktwjy81z/1/</u>](https://jsfiddle.net/ktwjy81z/1/)
+[https://jsfiddle.net/ktwjy81z/1/](https://jsfiddle.net/ktwjy81z/1/)
 
 ![](images/hyva-10.png)
 
@@ -305,7 +309,7 @@ Chỉ bằng cách này, mỗi khi giá trị count của reactiveB thay đổi,
 
 Để trao đổi dữ liệu giữa các component, ta dispatch các event kèm theo dữ liệu cần thiết cho các component khác. Bằng cách dispatch các reactive object này, ta có thể thực hiện sửa đổi ngay trên các reactive object từ mọi nơi và kết quả sẽ được update tức thì ngay trên component đó mà không phải dispatch thêm bất kỳ event nào cả.
 
-Nhược điểm của effect là luôn chạy lần đầu. Bạn có thể thêm 1 flag check và ngăn hành vi mặc định này của effect. [<u>https://jsfiddle.net/w731frLm/2/</u>](https://jsfiddle.net/w731frLm/2/)
+Nhược điểm của effect là luôn chạy lần đầu. Bạn có thể thêm 1 flag check và ngăn hành vi mặc định này của effect. [https://jsfiddle.net/w731frLm/2/](https://jsfiddle.net/w731frLm/2/)
 
 ***Lưu ý khi dùng Alpine.effect()***
 
@@ -317,11 +321,11 @@ Nhược điểm của effect là luôn chạy lần đầu. Bạn có thể th�
 
 Bạn có biết phương thức evaluate của Alpine js chứ?
 
-[<u>https://alpinejs.dev/advanced/extending#evaluating-expressions</u>](https://alpinejs.dev/advanced/extending#evaluating-expressions)
+[https://alpinejs.dev/advanced/extending#evaluating-expressions](https://alpinejs.dev/advanced/extending#evaluating-expressions)
 
 ![](images/hyva-13.png)
 
-Phương thức này cho phép ta thực thi một biểu thức dưới dạng một chuỗi. Nó hoạt động gần giống như eval() trong javascript vậy. Và chính Alpine thời buổi đầu đã thực sự dùng eval() trong framework của mình…khá là nguy hiểm 🙂. Ở các bản cập nhật sau họ mới bắt đầu dùng đến các phương pháp an toàn hơn như dùng [<u>Function</u>](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Function/Function) và [<u>AsyncFunction</u>](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/AsyncFunction). Nhưng giải pháp đó cũng [<u>chẳng an toàn</u>](https://docs.qualityclouds.com/qcd/javascript-avoid-use-of-function-constructors-31719691.html) là bao.
+Phương thức này cho phép ta thực thi một biểu thức dưới dạng một chuỗi. Nó hoạt động gần giống như eval() trong javascript vậy. Và chính Alpine thời buổi đầu đã thực sự dùng eval() trong framework của mình…khá là nguy hiểm 🙂. Ở các bản cập nhật sau họ mới bắt đầu dùng đến các phương pháp an toàn hơn như dùng [Function](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Function/Function) và [AsyncFunction](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/AsyncFunction). Nhưng giải pháp đó cũng [chẳng an toàn](https://docs.qualityclouds.com/qcd/javascript-avoid-use-of-function-constructors-31719691.html) là bao.
 
 Tuy doc của Alpine chỉ đề cập đến việc sử dụng **evaluate** và **evaluateLater** ở trong **Alpine.directive()** nhưng thật ra ta có thể sử dụng chúng cả ở bên ngoài.
 
@@ -333,7 +337,7 @@ Trường hợp sử dụng trong Alpine.directive(), 2 method không yêu cầu
 
 Nếu sử dụng 2 method này, ta có thể thực hiện tính toán dữ liệu của **bất kì component ở bất kì vị trí nào khác**.
 
-Mình sẽ demo để các bạn có thể hiểu rõ hơn: [<u>https://jsfiddle.net/0x3wnbj5/</u>](https://jsfiddle.net/0x3wnbj5/)
+Mình sẽ demo để các bạn có thể hiểu rõ hơn: [https://jsfiddle.net/0x3wnbj5/](https://jsfiddle.net/0x3wnbj5/)
 
 ![](images/hyva-14.png)
 
@@ -413,7 +417,7 @@ Chúng ta cũng không thể sử dụng **x-ref** và **$refs** bởi chúng kh
 
 Một giải pháp mà dev đề xuất đó là sử dụng mô hình **publisher/subscriber**:
 
-[<u>https://jsfiddle.net/4xzLthru/6/</u>](https://jsfiddle.net/4xzLthru/6/)
+[https://jsfiddle.net/4xzLthru/6/](https://jsfiddle.net/4xzLthru/6/)
 
 ![](images/hyva-23.png)
 
@@ -444,7 +448,7 @@ Bằng cách gắn lại **messageData** với giá trị mới thì khi tất c
 Hyva theme không có module manager như RequireJs, vậy nên ta có nhiều lựa chọn giải pháp tối ưu code js. Phương pháp hay dùng là lazy load on demand (cần đến đâu tải đến đó). Cụ thể là khi page load xong, có thể sẽ có một số component không sử dụng tới, như comment, like, read more, những component nằm ngoài viewport…Vậy nên ta không load các file js của component đó làm gì cả. Thay vì thế ta sẽ thực hiện lazy load các đoạn script này khi người dùng thực sự tương tác với chúng.
 
 Có rất nhiều các phương pháp thực hiện lazy loading, bạn có thể tham khảo thông qua doc chính thức của Hyva Theme.
-[<u>https://docs.hyva.io/hyva-themes/writing-code/patterns/loading-external-javascript.html</u>](https://docs.hyva.io/hyva-themes/writing-code/patterns/loading-external-javascript.html)
+[https://docs.hyva.io/hyva-themes/writing-code/patterns/loading-external-javascript.html](https://docs.hyva.io/hyva-themes/writing-code/patterns/loading-external-javascript.html)
 
 ### 2.2.7. Sử dụng plugins.
 
@@ -452,7 +456,7 @@ Alpine js có một số plugins tiện ích rất hữu dụng mà ta có thể
 
 #### # x-mask
 
-[<u>https://alpinejs.dev/plugins/mask</u>](https://alpinejs.dev/plugins/mask)
+[https://alpinejs.dev/plugins/mask](https://alpinejs.dev/plugins/mask)
 
 Dùng để format dữ liệu nhập form.
 
@@ -474,7 +478,7 @@ Dynamic masks cho phép thay đổi format linh hoạt nào đó mỗi khi ngư�
 
 #### # x-collapse
 
-[<u>https://alpinejs.dev/plugins/collapse</u>](https://alpinejs.dev/plugins/collapse)
+[https://alpinejs.dev/plugins/collapse](https://alpinejs.dev/plugins/collapse)
 
 Như cái tên nói lên, directive này dùng để tạo collapse box. Phù hợp với các thành phần như readmore,...
 
@@ -482,7 +486,7 @@ Như cái tên nói lên, directive này dùng để tạo collapse box. Phù h�
 
 #### # x-morph
 
-[<u>https://alpinejs.dev/plugins/morph</u>](https://alpinejs.dev/plugins/morph)
+[https://alpinejs.dev/plugins/morph](https://alpinejs.dev/plugins/morph)
 
 Rất quan trọng vì directive này cho phép thay đổi html của một element với một nội dung html dưới dạng plain-text. Ta có thể fetch từ server nhận html để render lên DOM bằng cách này. Ngoài ra x-morph cũng có thể dùng để áp dụng SSR với layout phức tạp.
 
@@ -490,7 +494,7 @@ Rất quan trọng vì directive này cho phép thay đổi html của một ele
 
 #### # $persist
 
-[<u>https://alpinejs.dev/plugins/persist</u>](https://alpinejs.dev/plugins/persist)
+[https://alpinejs.dev/plugins/persist](https://alpinejs.dev/plugins/persist)
 
 Cho phép lưu trữ giá trị ở localStorage để không bị mất khi refresh cửa sổ trình duyệt. Tốt cho caching.
 
@@ -520,7 +524,7 @@ Có 2 loại class mà ta cần phải tạo: 1 **ViewModel** và 1 **component 
 
 **component builder** cho phép thay đổi, thêm một số class, attributes,...do ta tự định nghĩa. Mục đích là để cho phép customize giao diện dựa trên config của builder.
 
-**component builder** cần 2 phương thức để thực hiện render html, đó là **render()** và **\_\_tostring()**
+**component builder** cần 2 phương thức để thực hiện render html, đó là **render()** và **__tostring()**
 
 ![](images/hyva-33.png)
 
@@ -538,7 +542,7 @@ Hyva hiện tại đang sử dụng format IIFE, và họ thường viết các 
 
 IIFE cho phép viết closed-scope code, tránh xung đột với các global variables.
 
-[<u>https://developer.mozilla.org/en-US/docs/Glossary/IIFE</u>](https://developer.mozilla.org/en-US/docs/Glossary/IIFE)
+[https://developer.mozilla.org/en-US/docs/Glossary/IIFE](https://developer.mozilla.org/en-US/docs/Glossary/IIFE)
 
 # 5. Các lưu ý, tiêu chuẩn khi code
 
@@ -551,7 +555,6 @@ IIFE cho phép viết closed-scope code, tránh xung đột với các global va
 * Lazy loading là một lợi thế, nhưng kĩ thuật này khá khó vì nó đòi hỏi khả năng phân tích thứ tự ưu tiên các chức năng của mọi thành phần trong ứng dụng, từ đó phân chia các file js hợp lý. Hyva không nhắc nhiều về kỹ thuật này nên nó cũng không quan trọng lắm. Mọi người chỉ nên áp dụng trong trường hợp thực sự cần tối ưu site và không nên lạm dụng quá, khó debug.
 * Không nên tạo nhiều event listener. Nếu như các component trao đổi dữ liệu cho nhau thường xuyên, bạn nên cho chúng sử dụng reactive object. Reactive object mà các component trao đổi nên tách biệt với những component đó. Vì có một số dữ liệu mà ta sẽ không muốn component khác thay đổi dẫn đến các side-effects ngoài mong muốn.
 
-Ví dụ về cách áp dụng kỹ thuật: [<u>https://jsfiddle.net/w731frLm/2/</u>](https://jsfiddle.net/w731frLm/2/)
+Ví dụ về cách áp dụng kỹ thuật: [https://jsfiddle.net/w731frLm/2/](https://jsfiddle.net/w731frLm/2/)
 
-* Tuân theo các quy tắc của Hyva theme khi tạo mới 1 module: [<u>https://docs.hyva.io/hyva-themes/compatibility-modules/index.html</u>](https://docs.hyva.io/hyva-themes/compatibility-modules/index.html)
-
+* Tuân theo các quy tắc của Hyva theme khi tạo mới 1 module: [https://docs.hyva.io/hyva-themes/compatibility-modules/index.html](https://docs.hyva.io/hyva-themes/compatibility-modules/index.html)
