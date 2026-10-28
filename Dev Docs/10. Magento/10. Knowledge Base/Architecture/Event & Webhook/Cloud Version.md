@@ -5,13 +5,13 @@ scope: backend
 status: current
 author: magento-team@
 owner: magento-team@
-updated: 2026-10-20
+updated: 2026-10-22
 tags: [event, webhook, adobe-commerce-cloud, app-builder]
 ---
 
 # Event & Webhook – Cloud Version (Adobe Commerce Cloud / App Builder)
 
-> **Techstack:** Magento 2.4.x – Adobe Commerce (PaaS: on cloud infrastructure / on-premises; SaaS: Adobe Commerce as a Cloud Service)
+> **Techstack:** Magento 2.4.x – Adobe Commerce 2.4.4+ (PaaS: on cloud infrastructure / on-premises; SaaS: Adobe Commerce as a Cloud Service)
 
 > [!NOTE]
 > Nội dung bài này chỉ áp dụng cho **Adobe Commerce**. Magento Open Source không hỗ trợ Adobe I/O Events; lựa chọn cho Open Source / Mage-OS xem [Event-driven Architecture with Mage-OS](Event-driven%20Architecture%20with%20Mage-OS.md).
@@ -24,10 +24,10 @@ Với Adobe Commerce trên cloud (đặc biệt **Adobe Commerce as a Cloud Serv
 
 | Cơ chế | Kiểu | Module / package | Dùng khi |
 |---|---|---|---|
-| **Adobe Commerce Webhooks** | Đồng bộ (sync) – Commerce chờ response | `magento/commerce-webhooks` | Cần kết quả ngay để quyết định tiếp tục / chặn / sửa dữ liệu (validate cart, tính thuế, check stock…) |
-| **Adobe I/O Events for Commerce** | Bất đồng bộ (async) – fire & forget | `magento/commerce-eventing` | Thông báo cho hệ thống ngoài (ERP, CRM, PIM) khi có thay đổi |
+| **Adobe Commerce Webhooks** | Đồng bộ (sync) – Commerce chờ response | `magento/commerce-webhooks` (PaaS; SaaS có sẵn) | Cần kết quả ngay để quyết định tiếp tục / chặn / sửa dữ liệu (validate cart, tính thuế, check stock…) |
+| **Adobe I/O Events for Commerce** | Bất đồng bộ (async) – fire & forget | `magento/commerce-eventing` (chỉ cần require trên 2.4.4–2.4.5; 2.4.6+ và SaaS có sẵn) | Thông báo cho hệ thống ngoài (ERP, CRM, PIM) khi có thay đổi |
 | REST / GraphQL (+ API Mesh) | Pull / write-back | core | App Builder đọc thêm dữ liệu hoặc ghi ngược lại Commerce |
-| Admin UI SDK | UI | App Builder | Thêm menu/page/grid vào Admin |
+| Admin UI SDK | UI | `magento/commerce-backend-sdk` (module `CommerceBackendUix`, có sẵn trên SaaS / PaaS ≥ 2.4.8) + App Builder extension | Thêm menu, page, grid column, mass action, button, banner vào Admin |
 
 > [!IMPORTANT]
 > Adobe khuyến nghị: **chỉ dùng webhook khi giao tiếp đồng bộ là bắt buộc**; còn lại dùng I/O Events.
@@ -37,12 +37,12 @@ Với Adobe Commerce trên cloud (đặc biệt **Adobe Commerce as a Cloud Serv
 | Tiêu chí | Observer / Plugin (on-prem) | Webhook (cloud) | I/O Events (cloud) |
 |---|---|---|---|
 | Nơi chạy | Trong PHP process của Magento | Endpoint HTTP bên ngoài | App Builder action / webhook / journal |
-| Đồng bộ | Có | Có (chờ response, có timeout) | Không (cron mỗi phút hoặc priority queue) |
+| Đồng bộ | Có | Có (chờ response; chỉ có hard timeout nếu khai báo `timeout` – mặc định `0` = không giới hạn) | Không (cron mỗi phút hoặc priority queue) |
 | Ảnh hưởng upgrade | Phụ thuộc code core, dễ vỡ | Chỉ phụ thuộc payload | Chỉ phụ thuộc payload |
 | Có thể sửa dữ liệu Commerce | Tuỳ ý | Qua operation `add` / `replace` / `remove` | Không trực tiếp – phải gọi API ngược lại |
 | Có thể chặn flow | `throw` exception | Operation `exception` | Không |
 | Hiệu năng | Không network | +latency mỗi request | Không ảnh hưởng request |
-| Dùng được trên SaaS | Không (không deploy được module PHP) | Có (cấu hình trong Admin) | Có |
+| Dùng được trên SaaS | Không (không deploy được module PHP) | Có (Admin *Webhooks Subscriptions* hoặc REST API; chỉ các webhook method được Adobe hỗ trợ) | Có |
 
 ## 3. Adobe Commerce Webhooks
 
@@ -56,7 +56,7 @@ sequenceDiagram
     U->>M: Thêm sản phẩm vào giỏ
     Note over M: hook observer.checkout_cart_product_add_before (type before)
     M->>W: POST payload (fields đã khai báo) + headers / signature
-    alt Response 200 trong timeout
+    alt Response 2xx trong timeout
         W-->>M: operation JSON
         alt op = success
             M->>M: tiếp tục flow, không thay đổi
@@ -65,9 +65,9 @@ sequenceDiagram
         else op = exception
             M-->>U: dừng flow, trả message lỗi
         end
-    else Lỗi / timeout và required = true
-        M-->>U: dừng flow, fallbackErrorMessage
-    else Lỗi / timeout và required = false
+    else HTTP non-2xx / hard timeout và required = true
+        M-->>U: dừng flow (throw exception), message = fallbackErrorMessage
+    else HTTP non-2xx / hard timeout và required = false
         M->>M: log lỗi rồi chạy tiếp
     end
 ```
@@ -96,7 +96,9 @@ stage:
     ENABLE_WEBHOOKS: true
 ```
 
-SaaS: không có CLI/PHP, cấu hình qua Admin **System > Webhooks** (Webhooks List, Webhooks Subscriptions) hoặc REST `GET /V1/webhooks/supportedList`.
+SaaS: không có CLI/PHP. Xem webhook method được hỗ trợ ở Admin **System > Webhooks > Webhooks List** hoặc REST `GET /V1/webhooks/supportedList`; tạo/sửa subscription ở **System > Webhooks > Webhooks Subscriptions** hoặc REST `POST /V1/webhooks/subscribe` (`POST /V1/webhooks/unsubscribe`, `GET /V1/webhooks/list`). SaaS chỉ hỗ trợ một tập webhook method (muốn thêm phải mở support ticket); URL phải là full URL, không dùng `{env:...}`.
+
+PaaS (từ webhooks 1.5.0): Admin UI tạo webhook đã bị bỏ – chỉ cấu hình qua `webhooks.xml`.
 
 ### 3.2. Tên webhook & hook type
 
@@ -146,19 +148,19 @@ Attribute `type` của `<method>` = `before` hoặc `after`: webhook chạy **tr
 
 - Các `hook` trong cùng một `batch` chạy **song song**; các batch chạy tuần tự theo `order`.
 - `required="false"`: hook lỗi chỉ log rồi chạy tiếp; `true` (mặc định): lỗi sẽ dừng flow.
-- `timeout` (hard, ms) / `softTimeout` (chỉ log), `ttl` cache response, `sslVerification`.
+- `timeout` (hard timeout, ms; mặc định `0` = không giới hạn; vượt → request bị abort + log) / `softTimeout` (ms, vượt chỉ ghi notice vào log), `ttl` (giây, cache response; `0` = không cache), `sslVerification` (mặc định `true`, chỉ tắt khi dev), `priority` (thứ tự merge kết quả các hook trong batch).
 - `fields`: chỉ gửi những field cần thiết (`name` = path gửi đi, `source` = path trong payload gốc).
 - `rules`: conditional webhook – chỉ gọi khi mọi rule đúng (operator như `equal`, `notEqual`, `regex`…).
 - `developerConsoleOauth`: Commerce tự sinh OAuth header cho App Builder action.
 
 ### 3.4. Response của endpoint
 
-Endpoint trả HTTP 200 + JSON (một operation hoặc mảng operation):
+Endpoint trả HTTP 200 + JSON (một operation hoặc mảng operation). Status khác 2xx hoặc vượt `timeout` được coi là hook lỗi (xử lý theo `required`):
 
 | `op` | Ý nghĩa |
 |---|---|
 | `success` | Tiếp tục, không thay đổi |
-| `exception` | Dừng flow, throw exception (mặc định `LocalizedException`) với `message` |
+| `exception` | Dừng flow, throw exception với `message` (field `type` chỉ định class; không set/không hợp lệ → `\Magento\Framework\Exception\LocalizedException`; thiếu `message` → dùng `fallbackErrorMessage`) |
 | `add` | Thêm `value` vào `path` của arguments |
 | `replace` | Thay giá trị tại `path` |
 | `remove` | Xoá giá trị/node tại `path` |
@@ -169,7 +171,7 @@ Endpoint trả HTTP 200 + JSON (một operation hoặc mảng operation):
 { "op": "exception", "message": "The product cannot be added to the cart because it is out of stock" }
 ```
 
-Bảo mật: bật **Stores > Configuration > Adobe Services > Webhooks > signature verification** → Commerce gửi header `x-adobe-commerce-webhook-signature` (HMAC SHA256, base64) để endpoint verify bằng public key.
+Bảo mật: **Stores > Settings > Configuration > Adobe Services > Webhooks** → (Digital Signature) **Enabled = Yes** → **Regenerate key pair**. Commerce ký request bằng private key và gửi header `x-adobe-commerce-webhook-signature` (signature SHA256 dạng base64). Docs Adobe gọi là "HMAC SHA256" nhưng thực chất là chữ ký bất đối xứng (key pair): endpoint verify bằng `crypto.createVerify('SHA256')` với **public key** copy từ Admin. Dữ liệu được ký là request body đã base64-encode (App Builder: bật annotation `raw-http: true` và verify trên `__ow_body`). Regenerate key pair → phải cập nhật public key ở endpoint.
 
 ### 3.5. CLI (PaaS)
 
@@ -177,11 +179,11 @@ Bảo mật: bật **Stores > Configuration > Adobe Services > Webhooks > signat
 bin/magento webhooks:list:all Magento_Checkout          # webhook method được hỗ trợ của module
 bin/magento webhooks:info observer.checkout_cart_product_add_before   # payload mẫu
 bin/magento webhooks:list                                # webhook đã đăng ký
-bin/magento webhooks:generate:module                     # regenerate plugin module
+bin/magento webhooks:generate:module                     # on-premises only: (re)generate Magento_AdobeCommerceWebhookPlugins vào app/code/Magento
 bin/magento webhooks:dev:run observer.checkout_cart_product_add_before:before '{"data":{"product":{"sku":"simple-product"}}}'
 ```
 
-Log lỗi: `var/log/system.log` (PaaS) hoặc Admin Webhook Logs (SaaS).
+Log: PaaS ghi exception/notice vào `var/log/system.log`. Ngoài ra (PaaS & SaaS) có thể bật database logging tại **Stores > Settings > Configuration > Adobe Services > Webhooks > Database logging configuration** rồi xem ở **System > Webhooks > Webhook Logs** (bảng `webhook_log`; không nên bật trên production). SaaS: *Webhooks Subscriptions* → **Select > Show Logs** để xem log của một hook.
 
 ## 4. Adobe I/O Events (tóm tắt)
 
@@ -193,7 +195,7 @@ Log lỗi: `var/log/system.log` (PaaS) hoặc Admin Webhook Logs (SaaS).
 ## 5. App Builder – out-of-process extensibility
 
 - App Builder project gồm **runtime actions** (Node.js serverless trên Adobe I/O Runtime), có thể expose làm endpoint cho webhook hoặc consumer cho I/O Events.
-- Auth giữa App Builder ↔ Commerce: OAuth (IMS) hoặc Commerce Integration (OAuth 1.0a) để gọi REST/GraphQL ngược lại.
+- Auth giữa App Builder ↔ Commerce để gọi REST/GraphQL ngược lại: PaaS dùng Commerce Integration (OAuth 1.0a); SaaS dùng IMS OAuth Server-to-Server.
 - Adobe cung cấp **Integration Starter Kit** (template đồng bộ dữ liệu Commerce ↔ ERP/CRM qua events + webhooks).
 
 ## 6. Best practices & lưu ý

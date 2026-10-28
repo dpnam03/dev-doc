@@ -5,7 +5,7 @@ scope: backend
 status: current
 author: magento-team@
 owner: magento-team@
-updated: 2026-10-20
+updated: 2026-10-22
 tags: [event, webhook, mage-os, event-driven, async-events]
 ---
 
@@ -36,7 +36,7 @@ composer create-project --repository-url=https://repo.mage-os.org/ mage-os/proje
 ### 1.2. Hệ quả với event-driven
 
 - Adobe I/O Events for Adobe Commerce yêu cầu Adobe Commerce 2.4.4+, docs ghi rõ **Magento Open Source không được hỗ trợ** → Mage-OS (dựa trên Open Source) **không** dùng được `magento/commerce-eventing` (suy luận từ điều kiện trên).
-- Adobe Commerce Webhooks (`magento/commerce-webhooks`) cũng là sản phẩm của Adobe Commerce → không phải lựa chọn cho Mage-OS.
+- Adobe Commerce Webhooks (`magento/commerce-webhooks`) chỉ được Adobe tài liệu hoá cho Adobe Commerce (cloud / on-premises / SaaS); docs không nêu hỗ trợ Magento Open Source → không phải lựa chọn cho Mage-OS (suy luận – docs webhooks không có câu "not supported" tường minh như I/O Events).
 - Vì vậy trên Mage-OS/Open Source, kiến trúc event-driven được xây từ các building block **có sẵn trong core**:
 
 | Building block | Đồng bộ? | Dùng khi |
@@ -53,7 +53,7 @@ composer create-project --repository-url=https://repo.mage-os.org/ mage-os/proje
 - Dispatch: `Magento\Framework\Event\ManagerInterface::dispatch(string $eventName, array $data = [])`.
 - Đăng ký: `etc/events.xml` (global) hoặc `etc/frontend|adminhtml|webapi_rest|graphql/events.xml`.
 - Observer implement `Magento\Framework\Event\ObserverInterface::execute(Observer $observer)`.
-- Chạy **đồng bộ, trong cùng transaction/request** → không gọi HTTP chậm trong observer.
+- Chạy **đồng bộ, trong cùng request**; nếu event được dispatch bên trong transaction (VD `<prefix>_save_after`) thì observer chạy **trước khi commit** → không gọi HTTP chậm trong observer.
 
 Chi tiết so sánh với plugin/DI: [So sánh Event, Plugin & DI](../DI%20%26%20Interceptors/So%20s%C3%A1nh%20overview%20v%E1%BB%81%20Event%2C%20Plugin%20%26%20DI.md).
 
@@ -108,17 +108,17 @@ bin/magento queue:consumers:restart
 - Bulk: `POST /rest/<store_code>/async/bulk/V1/<route>` → nhiều entity trong một request.
 - Xử lý bởi consumer `async.operations.all` (`Magento\AsynchronousOperations\Model\MassConsumer`).
 - Theo dõi: `GET /rest/V1/bulk/:bulkUuid/status`.
-- Flow controller tương ứng: [REST](../API%20Rest%2C%20Soap%20%26%20Graphql/REST.md) (`asyncBulk` processor).
+- Flow controller tương ứng: [REST](../API%20Rest%2C%20Soap%20%26%20Graphql/REST.md) (processor `async` – `AsynchronousRequestProcessor`, và `asyncBulk`).
 
 ### 2.4. Community module – `mage-os/mageos-async-events`
 
 - Repo: [mage-os/mageos-async-events](https://github.com/mage-os/mageos-async-events) (branch `4.x`) – port của Aligent `magento-async-events`. Module `MageOS_AsyncEvents`, require PHP ≥ 8.1, license MIT.
 - Khai báo event trong `etc/async_events.xml`: tên event + service contract dùng để build payload.
 - Subscription (endpoint nhận) tạo qua REST `POST /V1/async_event` (ACL `MageOS_AsyncEvents::manage`).
-- Publish bằng `MageOS\AsyncEvents\Api\AsyncEventPublisherInterface::publish(string $eventName, array $data, int $storeId)`.
-- Dùng MQF: consumer `event.trigger.consumer`, `event.retry.consumer` (mặc định connection `amqp`).
+- Publish bằng `MageOS\AsyncEvents\Api\AsyncEventPublisherInterface::publish(string $eventName, array $data, int $storeId): void` (branch `4.x`; implementation `Model\AsyncEventPublisher` cho `$storeId = 0` mặc định; branch `3.x` không có `$storeId`). `$data` là tham số của service method khai báo trong `async_events.xml` (VD `['id' => $orderId]`). Bên trong module publish qua `Magento\Framework\MessageQueue\PublisherInterface` tới topic `event.trigger`.
+- Dùng MQF: consumer `event.trigger.consumer` (queue `event.trigger`) và `event.retry.consumer` (queue `event.failover.retry`); `queue_consumer.xml` / `queue_topology.xml` khai báo cứng `connection="amqp"` (README nói hỗ trợ "RabbitMQ (or DB queues)" nhưng module không ship cấu hình `db` → dùng DB queue phải tự override config).
 - Tính năng: retry với quadratic backoff (cần RabbitMQ; DB queue phải tự implement `RetryManagementInterface`), trace log theo UUID, replay, tìm kiếm event bằng Lucene query (index qua search engine).
-- Sinks mở rộng: `mage-os/mageos-async-events-sinks`, `mage-os/mageos-async-events-aws` (VD Amazon EventBridge).
+- Sinks mở rộng: danh sách tại monorepo [mage-os/mageos-async-events-sinks](https://github.com/mage-os/mageos-async-events-sinks) (không phải package cài trực tiếp); cài từng package, VD `composer require mage-os/mageos-async-events-aws` (Amazon EventBridge, SQS), ngoài ra có `mageos-async-events-gcp` (Pub/Sub), `mageos-async-events-azure` (Event Grid).
 
 > [!WARNING]
 > Trước khi dùng production: kiểm tra branch/version tương thích với bản Mage-OS/Magento của project, và tự review code/test – đây là module cộng đồng, không có SLA.
@@ -176,7 +176,10 @@ class PublishBrandUpdated implements ObserverInterface
 ```
 
 > [!NOTE]
-> Event `vendor_brand_save_after` được dispatch tự động nếu model `Brand` khai báo `protected $_eventPrefix = 'vendor_brand';` (cơ chế của `Magento\Framework\Model\AbstractModel`).
+> Event `vendor_brand_save_after` được dispatch tự động nếu model `Brand` khai báo `protected $_eventPrefix = 'vendor_brand';` (cơ chế của `Magento\Framework\Model\AbstractModel`). Key `object` trong event data là giá trị mặc định của `$_eventObject` (`AbstractModel::_getEventData()`).
+
+> [!WARNING]
+> `<prefix>_save_after` được dispatch **bên trong transaction** (`AbstractDb::save()` → `processAfterSaves()` trước `commit()`). Với connection `db`, message được insert vào `queue_message` trên cùng DB connection nên rollback cùng entity. Với `amqp`, message đã gửi sang RabbitMQ trước khi commit → consumer có thể đọc dữ liệu chưa commit hoặc đã rollback; khi chuyển sang RabbitMQ nên đổi sang event `vendor_brand_save_commit_after` (dispatch trong `AbstractModel::afterCommitCallback()`).
 
 **Ví dụ:** `communication.xml` – khai báo topic
 
@@ -273,13 +276,13 @@ bin/magento queue:consumers:start vendor.brand.updated
 ```
 
 > [!TIP]
-> Muốn chuyển sang RabbitMQ: đổi `connection="amqp"`, exchange `magento`, cấu hình `queue.amqp` trong `env.php` – code publisher/consumer giữ nguyên.
+> Muốn chuyển sang RabbitMQ: đổi `connection="amqp"`, exchange `magento`, cấu hình `queue.amqp` trong `env.php` – code publisher/consumer giữ nguyên (chỉ nên đổi event sang `vendor_brand_save_commit_after`, xem WARNING ở trên).
 
 ## 4. Best practices & lưu ý
 
 - [Đề xuất] Observer chỉ **publish message** (nhanh, không network); mọi gọi HTTP/ERP đặt trong consumer.
 - [Đề xuất] Consumer phải **idempotent** (message có thể được xử lý lại) và log đủ context để debug.
-- [Verified] Consumer core (`Magento\Framework\MessageQueue\Consumer`) khi handler throw exception sẽ reject message (không tự retry có backoff). Retry/backoff phải tự xây; `mageos-async-events` làm điều này nhưng README ghi rõ backoff **cần RabbitMQ**. Tải lớn / cần retry tin cậy → ưu tiên RabbitMQ.
+- [Verified] Consumer core (`Magento\Framework\MessageQueue\Consumer`) khi handler throw exception sẽ gọi `$queue->reject($message, false, ...)` – `requeue = false` nên message **không được retry** (MySQL: status `MESSAGE_STATUS_ERROR` trong `queue_message_status`). Retry/backoff phải tự xây; `mageos-async-events` làm điều này nhưng README ghi rõ backoff **cần RabbitMQ**. Tải lớn / cần retry tin cậy → ưu tiên RabbitMQ.
 - [Verified] Production: chạy consumer qua `cron_consumers_runner` hoặc supervisor; đặt `max_messages` để process tự restart, tránh memory leak.
 - [Đề xuất] Topic name theo convention `vendor.entity.action`; payload nhỏ (ID + field thay đổi), consumer tự load chi tiết qua repository (xem [Service contracts](../Service%20contracts.md)).
 - [Đề xuất] Nếu cần "outgoing webhooks" có retry/trace/replay mà không muốn tự build → đánh giá `mage-os/mageos-async-events`.
