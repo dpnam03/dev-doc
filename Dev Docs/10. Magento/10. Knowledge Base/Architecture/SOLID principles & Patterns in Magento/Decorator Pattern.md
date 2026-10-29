@@ -5,7 +5,7 @@ scope: backend
 status: current
 author: magento-team@
 owner: magento-team@
-updated: 2026-10-20
+updated: 2026-10-28
 tags: [design-pattern, decorator, structural, plugin]
 ---
 
@@ -60,6 +60,127 @@ classDiagram
 - **BaseDecorator**: giữ reference tới Component, mặc định delegate mọi method.
 - **ConcreteDecorator**: override method cần thêm hành vi.
 
+### Ví dụ PHP – Decorator (Refactoring.Guru)
+
+Conceptual example của [Refactoring.Guru – Decorator in PHP](https://refactoring.guru/design-patterns/decorator/php/example) (© Alexander Shvets, CC BY-NC-ND 4.0). `Decorator` implement cùng `Component` interface và giữ tham chiếu tới component được bọc; `ConcreteDecoratorA/B` gọi `parent::operation()` rồi thêm hành vi, và có thể bọc lồng nhau nhiều lớp.
+
+```php
+<?php
+
+namespace RefactoringGuru\Decorator\Conceptual;
+
+/**
+ * The base Component interface defines operations that can be altered by
+ * decorators.
+ */
+interface Component
+{
+    public function operation(): string;
+}
+
+/**
+ * Concrete Components provide default implementations of the operations.
+ * There might be several variations of these classes.
+ */
+class ConcreteComponent implements Component
+{
+    public function operation(): string
+    {
+        return "ConcreteComponent";
+    }
+}
+
+/**
+ * The base Decorator class follows the same interface as the other
+ * components. The primary purpose of this class is to define the wrapping
+ * interface for all concrete decorators. The default implementation of the
+ * wrapping code might include a field for storing a wrapped component and the
+ * means to initialize it.
+ */
+class Decorator implements Component
+{
+    /**
+     * @var Component
+     */
+    protected $component;
+
+    public function __construct(Component $component)
+    {
+        $this->component = $component;
+    }
+
+    /**
+     * The Decorator delegates all work to the wrapped component.
+     */
+    public function operation(): string
+    {
+        return $this->component->operation();
+    }
+}
+
+/**
+ * Concrete Decorators call the wrapped object and alter its result in some
+ * way.
+ */
+class ConcreteDecoratorA extends Decorator
+{
+    /**
+     * Decorators may call parent implementation of the operation, instead
+     * of calling the wrapped object directly. This approach simplifies
+     * extension of decorator classes.
+     */
+    public function operation(): string
+    {
+        return "ConcreteDecoratorA(" . parent::operation() . ")";
+    }
+}
+
+/**
+ * Decorators can execute their behavior either before or after the call to
+ * a wrapped object.
+ */
+class ConcreteDecoratorB extends Decorator
+{
+    public function operation(): string
+    {
+        return "ConcreteDecoratorB(" . parent::operation() . ")";
+    }
+}
+
+/**
+ * The client code works with all objects using the Component interface.
+ * This way it can stay independent of the concrete classes of components it
+ * works with.
+ */
+function clientCode(Component $component)
+{
+    // ...
+
+    echo "RESULT: " . $component->operation();
+
+    // ...
+}
+
+/**
+ * This way the client code can support both simple components...
+ */
+$simple = new ConcreteComponent();
+echo "Client: I've got a simple component:\n";
+clientCode($simple);
+echo "\n\n";
+
+/**
+ * ...as well as decorated ones.
+ *
+ * Note how decorators can wrap not only simple components but the other
+ * decorators as well.
+ */
+$decorator1 = new ConcreteDecoratorA($simple);
+$decorator2 = new ConcreteDecoratorB($decorator1);
+echo "Client: Now I've got a decorated component:\n";
+clientCode($decorator2);
+```
+
 ## 4. Áp dụng trong Magento 2
 
 ### 4.1. Cache frontend decorators (ví dụ "sách giáo khoa")
@@ -113,7 +234,10 @@ public function save($data, $identifier, array $tags = [], $lifeTime = null)
 }
 ```
 
-Danh sách decorator được khai báo trong `app/etc/di.xml` cho `Magento\Framework\App\Cache\Frontend\Factory` (argument `decorators`: `TagScope` với tag `MAGE`, rồi `Logger`). `Factory::_applyDecorators()` lần lượt bọc frontend: `$decoratorParams['frontend'] = $frontend; $frontend = $objectManager->create($class, $params);`.
+Danh sách decorator được khai báo trong `app/etc/di.xml` cho `Magento\Framework\App\Cache\Frontend\Factory` (argument `decorators`: `TagScope` với tag `MAGE`, rồi `Logger`). `Factory::_applyDecorators()` lần lượt bọc frontend: `$decoratorParams['frontend'] = $frontend; $frontend = $this->_objectManager->create($decoratorClass, $decoratorParams);`.
+
+> [!NOTE]
+> `Profiler` không có trong `app/etc/di.xml`: `Magento\Framework\App\ObjectManagerFactory::create()` chỉ append decorator này vào argument `decorators` của `Factory` khi `\Magento\Framework\Profiler::isEnabled()`, nên bình thường chuỗi bọc chỉ gồm `TagScope` (MAGE) và `Logger`.
 
 Các **cache type** cũng là decorator: `Magento\Framework\App\Cache\Type\Config extends TagScope` (tag `CONFIG`), bọc frontend lấy từ `Magento\Framework\App\Cache\Type\FrontendPool`, vốn đã được bọc thêm `Magento\Framework\App\Cache\Type\AccessProxy` (extends `Bare`, bỏ qua thao tác nếu cache type đang disabled). Chuỗi bọc thực tế:
 
@@ -258,7 +382,7 @@ Muốn thêm logging → viết `LoggingProvider` cùng interface, cho `CachedPr
 - Phân biệt với [Proxies](Proxies.md) (cùng interface nhưng mục đích là lazy-load/kiểm soát truy cập) và [Adapter Pattern_](Adapter%20Pattern_.md) (đổi interface).
 
 > [!WARNING]
-> Argument `inner` phải trỏ tới class gốc cụ thể, nếu trỏ tới interface sẽ tự resolve về chính decorator → vòng lặp vô hạn.
+> Argument `inner` phải trỏ tới class gốc cụ thể. Nếu bỏ trống hoặc trỏ tới interface, ObjectManager resolve interface theo `preference` về chính decorator → circular dependency: khi DI chưa compile (factory `Magento\Framework\ObjectManager\Factory\Dynamic\Developer`) Magento ném `LogicException: Circular dependency: ... depends on ... and vice versa.`
 
 ## Tham khảo
 

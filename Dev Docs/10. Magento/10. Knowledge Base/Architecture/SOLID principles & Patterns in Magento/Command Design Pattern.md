@@ -5,7 +5,7 @@ scope: backend
 status: current
 author: magento-team@
 owner: magento-team@
-updated: 2026-10-20
+updated: 2026-10-28
 tags: [design-pattern, command, behavioral]
 ---
 
@@ -44,8 +44,162 @@ classDiagram
 - **Command**: interface `execute()`.
 - **ConcreteCommand**: cài đặt cụ thể, giữ tham chiếu tới Receiver.
 - **Receiver**: object làm việc thật (HTTP client, repository…).
-- **Invoker**: giữ/chọn command và gọi `execute()` (thường là một *pool*).
-- **Client**: tạo và cấu hình command (trong Magento: `di.xml`).
+- **Invoker** (Sender): giữ tham chiếu tới command và **kích hoạt** `execute()` thay vì gọi thẳng Receiver. Trong Magento Invoker thường lấy command từ một *pool/registry* (`CommandPool`, `CommandList`) – pool chỉ là nơi tra cứu, không tự gọi `execute()`.
+- **Client**: tạo và cấu hình command, gắn Receiver vào command (trong Magento: `di.xml` + ObjectManager).
+
+### Ví dụ PHP – Command (Refactoring.Guru)
+
+Conceptual example của [Refactoring.Guru – Command in PHP](https://refactoring.guru/design-patterns/command/php/example) (© Alexander Shvets, CC BY-NC-ND 4.0). `Invoker` chỉ giữ command (`setOnStart()`/`setOnFinish()`) và gọi `execute()`; `ComplexCommand` ủy thác việc thật cho `Receiver`; phần client code ở cuối tạo và gắn command – tương ứng vai trò của `di.xml` trong Magento.
+
+```php
+<?php
+
+namespace RefactoringGuru\Command\Conceptual;
+
+/**
+ * The Command interface declares a method for executing a command.
+ */
+interface Command
+{
+    public function execute(): void;
+}
+
+/**
+ * Some commands can implement simple operations on their own.
+ */
+class SimpleCommand implements Command
+{
+    private $payload;
+
+    public function __construct(string $payload)
+    {
+        $this->payload = $payload;
+    }
+
+    public function execute(): void
+    {
+        echo "SimpleCommand: See, I can do simple things like printing (" . $this->payload . ")\n";
+    }
+}
+
+/**
+ * However, some commands can delegate more complex operations to other
+ * objects, called "receivers."
+ */
+class ComplexCommand implements Command
+{
+    /**
+     * @var Receiver
+     */
+    private $receiver;
+
+    /**
+     * Context data, required for launching the receiver's methods.
+     */
+    private $a;
+
+    private $b;
+
+    /**
+     * Complex commands can accept one or several receiver objects along
+     * with any context data via the constructor.
+     */
+    public function __construct(Receiver $receiver, string $a, string $b)
+    {
+        $this->receiver = $receiver;
+        $this->a = $a;
+        $this->b = $b;
+    }
+
+    /**
+     * Commands can delegate to any methods of a receiver.
+     */
+    public function execute(): void
+    {
+        echo "ComplexCommand: Complex stuff should be done by a receiver object.\n";
+        $this->receiver->doSomething($this->a);
+        $this->receiver->doSomethingElse($this->b);
+    }
+}
+
+/**
+ * The Receiver classes contain some important business logic. They know how
+ * to perform all kinds of operations, associated with carrying out a request.
+ * In fact, any class may serve as a Receiver.
+ */
+class Receiver
+{
+    public function doSomething(string $a): void
+    {
+        echo "Receiver: Working on (" . $a . ".)\n";
+    }
+
+    public function doSomethingElse(string $b): void
+    {
+        echo "Receiver: Also working on (" . $b . ".)\n";
+    }
+}
+
+/**
+ * The Invoker is associated with one or several commands. It sends a
+ * request to the command.
+ */
+class Invoker
+{
+    /**
+     * @var Command
+     */
+    private $onStart;
+
+    /**
+     * @var Command
+     */
+    private $onFinish;
+
+    /**
+     * Initialize commands.
+     */
+    public function setOnStart(Command $command): void
+    {
+        $this->onStart = $command;
+    }
+
+    public function setOnFinish(Command $command): void
+    {
+        $this->onFinish = $command;
+    }
+
+    /**
+     * The Invoker does not depend on concrete command or receiver classes.
+     * The Invoker passes a request to a receiver indirectly, by executing a
+     * command.
+     */
+    public function doSomethingImportant(): void
+    {
+        echo "Invoker: Does anybody want something done before I begin?\n";
+        if ($this->onStart instanceof Command) {
+            $this->onStart->execute();
+        }
+
+        echo "Invoker: ...doing something really important...\n";
+
+        echo "Invoker: Does anybody want something done after I finish?\n";
+        if ($this->onFinish instanceof Command) {
+            $this->onFinish->execute();
+        }
+    }
+}
+
+/**
+ * The client code can parameterize an invoker with any commands.
+ */
+$invoker = new Invoker();
+$invoker->setOnStart(new SimpleCommand("Say Hi!"));
+$receiver = new Receiver();
+$invoker->setOnFinish(new ComplexCommand($receiver, "Send email", "Save report"));
+
+$invoker->doSomethingImportant();
+```
 
 ## 4. Áp dụng trong Magento 2
 
@@ -55,8 +209,9 @@ classDiagram
 |---|---|
 | Command interface | `Magento\Payment\Gateway\CommandInterface::execute(array $commandSubject)` |
 | ConcreteCommand | `Magento\Payment\Gateway\Command\GatewayCommand` (request builder → transfer factory → client → validator → handler) |
-| Invoker / pool | `Magento\Payment\Gateway\Command\CommandPoolInterface::get($commandCode)`, impl `Magento\Payment\Gateway\Command\CommandPool` |
-| Client | `Magento\Payment\Model\Method\Adapter` – gọi command theo code (`authorize`, `capture`, `refund`, `void`…) |
+| Command pool (registry) | `Magento\Payment\Gateway\Command\CommandPoolInterface::get($commandCode)`, impl `Magento\Payment\Gateway\Command\CommandPool` – chỉ trả command theo code, ném `NotFoundException` nếu không có |
+| Invoker | `Magento\Payment\Model\Method\Adapter` – `authorize()`/`capture()`/`refund()`/`void()`… gọi private `executeCommand($commandCode, $arguments)` → `$this->commandPool->get($commandCode)->execute($arguments)` (hoặc `CommandManagerInterface::executeByCode()` nếu inject `commandExecutor`) |
+| Client | `di.xml` (virtualType) + ObjectManager – tạo `GatewayCommand`, gắn builder/client/handler, đăng ký vào pool |
 | Receiver | `Magento\Payment\Gateway\Http\ClientInterface::placeRequest()` |
 
 ```mermaid
@@ -86,12 +241,13 @@ classDiagram
         +placeRequest(transferObject)
     }
     Adapter --> CommandPoolInterface : get('authorize')
+    Adapter ..> CommandInterface : execute(arguments)
     CommandPoolInterface o-- CommandInterface
     CommandInterface <|.. GatewayCommand
     GatewayCommand --> ClientInterface
 ```
 
-*Hình 2: Command pattern trong Payment Gateway – `Adapter` (client) lấy command từ `CommandPool` (invoker) theo code*
+*Hình 2: Command pattern trong Payment Gateway – `Adapter` (invoker) lấy command từ `CommandPool` (registry) theo code rồi gọi `execute()`*
 
 `GatewayCommand::execute()` thực thi một lệnh theo đúng thứ tự: build request → tạo transfer object → gửi request → validate response → handle response:
 
@@ -159,7 +315,8 @@ Ngoài ra, phía Sales cũng có `Magento\Sales\Model\Order\Payment\State\Comman
 ### 4.2. Console command
 
 - Mỗi CLI command là một object `Symfony\Component\Console\Command\Command` (`configure()` + `execute()`).
-- Invoker: `Magento\Framework\Console\CommandListInterface` (impl `Magento\Framework\Console\CommandList`), nhận mảng `commands` qua `di.xml`.
+- Registry: `Magento\Framework\Console\CommandListInterface` (impl `Magento\Framework\Console\CommandList`), nhận mảng `commands` qua `di.xml`.
+- Invoker: `Magento\Framework\Console\Cli` (extends Symfony `Console\Application`) – `getApplicationCommands()` lấy command từ `CommandListInterface::getCommands()`, sau đó Symfony Application chọn command theo tên và gọi `run()` → `execute()`.
 
 **Ví dụ:** đăng ký console command
 

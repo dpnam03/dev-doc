@@ -5,7 +5,7 @@ scope: backend
 status: current
 author: magento-team@
 owner: magento-team@
-updated: 2026-10-20
+updated: 2026-10-28
 tags: [design-pattern, proxy, structural, lazy-loading]
 ---
 
@@ -23,13 +23,126 @@ Thay vì chờ tất cả các hành động của logic chính được khởi 
 
 *Hình 1: Proxy như người trung gian – client (chú rể) không gọi trực tiếp đối tượng thật (cô dâu) mà đi qua proxy (người dì)*
 
+> [!NOTE]
+> Định nghĩa gốc ([refactoring.guru – Proxy](https://refactoring.guru/design-patterns/proxy)): Proxy là **structural** pattern cung cấp một *substitute/placeholder* cho object khác để **kiểm soát truy cập** tới object đó; proxy implement **cùng interface** với service nên client không phân biệt được. Lazy initialization (**virtual proxy**) chỉ là một dạng – ngoài ra còn protection, remote, logging, caching proxy và smart reference. Proxy do Magento generate thuộc dạng **virtual proxy**.
+
+### Ví dụ PHP – Proxy (Refactoring.Guru)
+
+Conceptual example của [Refactoring.Guru – Proxy in PHP](https://refactoring.guru/design-patterns/proxy/php/example) (© Alexander Shvets, CC BY-NC-ND 4.0). Ví dụ này là **protection/logging proxy**: `Proxy` implement cùng `Subject` interface với `RealSubject`, kiểm tra quyền (`checkAccess()`) trước và ghi log (`logAccess()`) sau khi chuyển tiếp `request()`. Proxy do Magento generate là **virtual proxy** – khác ở chỗ chỉ tạo `RealSubject` khi method đầu tiên được gọi (xem mục 2.2).
+
+```php
+<?php
+
+namespace RefactoringGuru\Proxy\Conceptual;
+
+/**
+ * The Subject interface declares common operations for both RealSubject and
+ * the Proxy. As long as the client works with RealSubject using this interface,
+ * you'll be able to pass it a proxy instead of a real subject.
+ */
+interface Subject
+{
+    public function request(): void;
+}
+
+/**
+ * The RealSubject contains some core business logic. Usually, RealSubjects
+ * are capable of doing some useful work which may also be very slow or
+ * sensitive - e.g. correcting input data. A Proxy can solve these issues
+ * without any changes to the RealSubject's code.
+ */
+class RealSubject implements Subject
+{
+    public function request(): void
+    {
+        echo "RealSubject: Handling request.\n";
+    }
+}
+
+/**
+ * The Proxy has an interface identical to the RealSubject.
+ */
+class Proxy implements Subject
+{
+    /**
+     * @var RealSubject
+     */
+    private $realSubject;
+
+    /**
+     * The Proxy maintains a reference to an object of the RealSubject
+     * class. It can be either lazy-loaded or passed to the Proxy by the client.
+     */
+    public function __construct(RealSubject $realSubject)
+    {
+        $this->realSubject = $realSubject;
+    }
+
+    /**
+     * The most common applications of the Proxy pattern are lazy loading,
+     * caching, controlling the access, logging, etc. A Proxy can perform one of
+     * these things and then, depending on the result, pass the execution to the
+     * same method in a linked RealSubject object.
+     */
+    public function request(): void
+    {
+        if ($this->checkAccess()) {
+            $this->realSubject->request();
+            $this->logAccess();
+        }
+    }
+
+    private function checkAccess(): bool
+    {
+        // Some real checks should go here.
+        echo "Proxy: Checking access prior to firing a real request.\n";
+
+        return true;
+    }
+
+    private function logAccess(): void
+    {
+        echo "Proxy: Logging the time of request.\n";
+    }
+}
+
+/**
+ * The client code is supposed to work with all objects (both subjects and
+ * proxies) via the Subject interface in order to support both real subjects and
+ * proxies. In real life, however, clients mostly work with their real subjects
+ * directly. In this case, to implement the pattern more easily, you can extend
+ * your proxy from the real subject's class.
+ */
+function clientCode(Subject $subject)
+{
+    // ...
+
+    $subject->request();
+
+    // ...
+}
+
+echo "Client: Executing the client code with a real subject:\n";
+$realSubject = new RealSubject();
+clientCode($realSubject);
+
+echo "\n";
+
+echo "Client: Executing the same client code with a proxy:\n";
+$proxy = new Proxy($realSubject);
+clientCode($proxy);
+```
+
 ## 2. Magento Proxy Generator
 
 Action sẽ được thực hiện:
 
 `\Magento\Setup\Module\Di\App\Task\Operation\ProxyGenerator::doOperation()`
 
-Proxy là một code generator `\Magento\Framework\Code\Generator`
+Proxy là một entity do code generator `\Magento\Framework\Code\Generator` sinh ra (item `proxy` trong argument `generatedEntities` của `app/etc/di.xml`); class thực hiện generate là `\Magento\Framework\ObjectManager\Code\Generator\Proxy`.
+
+> [!NOTE]
+> `ProxyGenerator::doOperation()` chỉ chạy trong `bin/magento setup:di:compile` (`DiCompileCommand` → `OperationFactory::PROXY_GENERATOR`). Ở developer/default mode, class `...\Proxy` được generate **on-demand** bởi `Magento\Framework\Code\Generator\Autoloader` lần đầu nó được autoload (Hình 2); ở production mode phải chạy `setup:di:compile` trước. Xem [Code generation](https://developer.adobe.com/commerce/php/development/components/code-generation).
 
 ![Flow autoload: index.php → Bootstrap::create() → ObjectManagerFactory->create() → DefinitionFactory->createClassDefinition() → đăng ký Autoloader bằng spl_autoload_register; nếu class chưa tồn tại thì generate rồi autoload](images/proxies/image-02.png)
 
@@ -42,9 +155,10 @@ Proxy generator sẽ scan tất cả các file di.xml trong project sau đấy t
 Chúng ta có thể xem lại đoạn code:
 
 ```php
-// Magento\Setup\Module\Di\Code\Scanner\XmlScanner::collectEntities()
+// setup/src/Magento/Setup/Module/Di/Code/Scanner/XmlScanner.php
+// XmlScanner::collectEntities() gọi private scanProxies() cho từng file di.xml
 
-$regex = '/^(.*)\\\(.*)Proxy$/';
+$regex = '/^(\s+)?(.*)\\\(.*)Proxy(\s+)?$/';
 $query = "/config/preference[ php:functionString('preg_match', '{$regex}', @type) > 0]/@type | " .
     "//argument[@xsi:type='object' and php:functionString('preg_match', '{$regex}', text()) > 0] |" .
     "//item[@xsi:type='object' and php:functionString('preg_match', '{$regex}', text()) > 0] |" .
@@ -54,12 +168,14 @@ $query = "/config/preference[ php:functionString('preg_match', '{$regex}', @type
 Vậy những config sau sẽ được generator
 
 ```xml
-<preference for="Magento\Framework\App\RequestInterface" type="Magento\Framework\App\Request\Http\Proxy" />
+<!-- app/etc/di.xml -->
+<preference for="Magento\Framework\Event\ManagerInterface" type="Magento\Framework\Event\Manager\Proxy" />
 ```
 
 or —----
 
 ```xml
+<!-- Magento/Backend/etc/di.xml -->
 <type name="Magento\Backend\Model\Widget\Grid\Row\UrlGenerator">
     <arguments>
         <argument name="backendUrl" xsi:type="object">Magento\Backend\Model\UrlInterface\Proxy</argument>
@@ -70,6 +186,7 @@ or —----
 or —----
 
 ```xml
+<!-- Magento/Directory/etc/di.xml -->
 <virtualType name="DirectoryHelperDataProxy" type="Magento\Directory\Helper\Data\Proxy">
     <arguments>
         <argument name="instanceName" xsi:type="string">Magento\Directory\Helper\Data</argument>
@@ -119,12 +236,12 @@ Trong này sẽ định nghĩa template của file, class, methods …. sẽ đc
 **Kết quả:**
 
 ```text
-/**
-* Clone proxied instance
-*/
-path: code/{subjectPath}/Proxy.php
-=> class: \{subjectClass}\Proxy extends \{subjectClass}
+path: generated/code/{subjectPath}/Proxy.php
+=> subject là class:     class \{subjectClass}\Proxy extends \{subjectClass} implements \Magento\Framework\ObjectManager\NoninterceptableInterface
+=> subject là interface: class \{subjectInterface}\Proxy implements \{subjectInterface}, \Magento\Framework\ObjectManager\NoninterceptableInterface
 ```
+
+Theo `Proxy::_generateCode()` và `Proxy::_getClassMethods()`: constructor nhận `ObjectManagerInterface $objectManager, $instanceName = <subject>, $shared = true`; mỗi public method (trừ constructor, `final`, `static`) được generate thành `$this->_getSubject()->method(...)`; ngoài ra có `__sleep`, `__wakeup`, `__clone` (*Clone proxied instance*), `__debugInfo`.
 
 ## 3. Vậy Proxy là gì? Tại sao Magento lại generate các class này
 

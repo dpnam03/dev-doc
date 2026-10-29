@@ -5,7 +5,7 @@ scope: backend
 status: current
 author: magento-team@
 owner: magento-team@
-updated: 2026-10-20
+updated: 2026-10-28
 tags: [design-pattern, strategy, behavioral]
 ---
 
@@ -24,16 +24,122 @@ Strategy giúp tách riêng hành động thành riêng biệt, ko ảnh hưởn
 - Auth => AuthStrategyByPassword, AuthStrategyByToken
 - Payment => PaymentStrategyByPaypal, PaymentStrategyByCredit …..
 
-![Bốn cách đi tới sân bay: xe đạp (0 đồng, lâu nhất), xe buýt (chi phí vừa), taxi (đắt nhất, nhanh nhất)](images/strategy-design-pattern/image-01.png)
+![Ba cách đi tới sân bay: xe đạp (0 đồng, lâu nhất), xe buýt (chi phí vừa), taxi (đắt nhất, nhanh nhất)](images/strategy-design-pattern/image-01.png)
 
 *Hình 1: Các strategy di chuyển tới sân bay – cùng một mục tiêu, có thể hoán đổi phương án theo chi phí và thời gian*
 
 > [!NOTE]
 > **Behavioral Design Patterns:** Là tập hợp các patterns liên quan đến việc xử lý công việc, phân công trách nhiệm giữa các objects.
 
+### Ví dụ PHP – Strategy (Refactoring.Guru)
+
+Conceptual example của [Refactoring.Guru – Strategy in PHP](https://refactoring.guru/design-patterns/strategy/php/example) (© Alexander Shvets, CC BY-NC-ND 4.0). `Context` giữ một `Strategy` và có thể đổi lúc runtime qua `setStrategy()`; `ConcreteStrategyA/B` cài đặt cùng thuật toán theo hai cách (sắp xếp xuôi / ngược).
+
+```php
+<?php
+
+namespace RefactoringGuru\Strategy\Conceptual;
+
+/**
+ * The Context defines the interface of interest to clients.
+ */
+class Context
+{
+    /**
+     * @var Strategy The Context maintains a reference to one of the
+     * Strategy objects. The Context does not know the concrete class of a
+     * strategy. It should work with all strategies via the Strategy interface.
+     */
+    private $strategy;
+
+    /**
+     * Usually, the Context accepts a strategy through the constructor, but
+     * also provides a setter to change it at runtime.
+     */
+    public function __construct(Strategy $strategy)
+    {
+        $this->strategy = $strategy;
+    }
+
+    /**
+     * Usually, the Context allows replacing a Strategy object at runtime.
+     */
+    public function setStrategy(Strategy $strategy)
+    {
+        $this->strategy = $strategy;
+    }
+
+    /**
+     * The Context delegates some work to the Strategy object instead of
+     * implementing multiple versions of the algorithm on its own.
+     */
+    public function doSomeBusinessLogic(): void
+    {
+        // ...
+
+        echo "Context: Sorting data using the strategy (not sure how it'll do it)\n";
+        $result = $this->strategy->doAlgorithm(["a", "b", "c", "d", "e"]);
+        echo implode(",", $result) . "\n";
+
+        // ...
+    }
+}
+
+/**
+ * The Strategy interface declares operations common to all supported
+ * versions of some algorithm.
+ *
+ * The Context uses this interface to call the algorithm defined by Concrete
+ * Strategies.
+ */
+interface Strategy
+{
+    public function doAlgorithm(array $data): array;
+}
+
+/**
+ * Concrete Strategies implement the algorithm while following the base
+ * Strategy interface. The interface makes them interchangeable in the Context.
+ */
+class ConcreteStrategyA implements Strategy
+{
+    public function doAlgorithm(array $data): array
+    {
+        sort($data);
+
+        return $data;
+    }
+}
+
+class ConcreteStrategyB implements Strategy
+{
+    public function doAlgorithm(array $data): array
+    {
+        rsort($data);
+
+        return $data;
+    }
+}
+
+/**
+ * The client code picks a concrete strategy and passes it to the context.
+ * The client should be aware of the differences between strategies in order to
+ * make the right choice.
+ */
+$context = new Context(new ConcreteStrategyA());
+echo "Client: Strategy is set to normal sorting.\n";
+$context->doSomeBusinessLogic();
+
+echo "\n";
+
+echo "Client: Strategy is set to reverse sorting.\n";
+$context->setStrategy(new ConcreteStrategyB());
+$context->doSomeBusinessLogic();
+```
+
 ## 2. Implement trong Magento
 
-- Collection fetch data: `FetchStrategyByCache`, `FetchStrategyByQuery`
+- Collection fetch data: interface `Magento\Framework\Data\Collection\Db\FetchStrategyInterface` với 2 strategy `Magento\Framework\Data\Collection\Db\FetchStrategy\Query` và `Magento\Framework\Data\Collection\Db\FetchStrategy\Cache`
 
 ```mermaid
 classDiagram

@@ -5,7 +5,7 @@ scope: backend
 status: current
 author: magento-team@
 owner: magento-team@
-updated: 2026-10-20
+updated: 2026-10-28
 tags: [design-pattern, solid, overview]
 ---
 
@@ -64,9 +64,16 @@ Các mẫu phổ biến:
 
 - **Builder:** Xây dựng các đối tượng phức tạp từng bước, cho phép tạo ra các cấu hình đối tượng khác nhau. Ví dụ trong Magento: `Magento\Framework\Api\SearchCriteriaBuilder`.
 - **Factory Method:** Định nghĩa một interface cho việc tạo đối tượng, nhưng để lớp con quyết định lớp nào sẽ được khởi tạo.
-- **Abstract Factory:** Tạo ra các factory để tạo ra các đối tượng liên quan, giúp tạo các họ đối tượng mà không cần chỉ định lớp cụ thể. Ví dụ trong Magento: `Magento\Catalog\Model\ProductFactory`.
-- **Prototype:** Tạo đối tượng mới bằng cách sao chép một đối tượng đã có. Ví dụ trong Magento: `Magento\Framework\DataObject\Copy`.
-- **Object Pool:** Quản lý và tái sử dụng các đối tượng đã được tạo, giúp giảm chi phí khởi tạo. Object Manager trong Magento là một ví dụ về việc áp dụng Object Pool, giúp quản lý và cung cấp các object, thường được dùng để tạo các singleton object hoặc các object theo DI.
+- **Abstract Factory:** Tạo ra các factory để tạo ra các đối tượng liên quan, giúp tạo các họ (family) đối tượng mà không cần chỉ định lớp cụ thể.
+- **Prototype:** Tạo đối tượng mới bằng cách sao chép một đối tượng đã có; việc clone được giao cho chính object đó. Ví dụ trong Magento: `Magento\Quote\Model\Quote::merge()` dùng `clone $item`, còn `Magento\Quote\Model\Quote\Item::__clone()` tự quyết định cách sao chép (reset id, clone lại các option).
+- **Object Pool:** Quản lý và tái sử dụng các đối tượng đã được tạo, giúp giảm chi phí khởi tạo. Object Manager trong Magento có ý tưởng gần giống: `ObjectManager::get()` cache instance theo type trong `$_sharedInstances` để tái sử dụng (shared/singleton object), còn `create()` luôn tạo object mới theo DI.
+
+> [!NOTE]
+> Các class `*Factory` auto-generate trong Magento (vd. `Magento\Catalog\Model\ProductFactory`) chỉ tạo **một** loại object qua `ObjectManagerInterface::create($this->_instanceName, $data)` (template `Magento\Framework\ObjectManager\Code\Generator\Factory`), không tạo một *họ* object liên quan, nên chúng gần với Simple Factory hơn là Abstract Factory theo GoF — xem [Factories](Factories%20Patterns.md).
+>
+> `Magento\Framework\DataObject\Copy` (hay được nhắc khi nói về Prototype) là utility copy dữ liệu theo `fieldset.xml` sang một target **đã có** (`copyFieldsetToTarget()`, `getDataFromFieldset()`), không clone object.
+>
+> Object Pool không nằm trong 23 pattern của GoF. Object Pool kinh điển có bước *acquire/release* (client trả object về pool để dùng lại); `ObjectManager` không có bước release, `$_sharedInstances` giữ instance suốt request.
 
 ### 2.2. Structural Patterns (Mẫu Cấu Trúc)
 
@@ -75,7 +82,7 @@ Các mẫu phổ biến:
 Các mẫu phổ biến:
 
 - **Adapter:** Cho phép các lớp có interface không tương thích làm việc cùng nhau bằng cách chuyển đổi interface. Ví dụ trong Magento: `Magento\Framework\Image\Adapter\AdapterInterface`.
-- **Composite:** Cho phép xử lý các đối tượng đơn lẻ và các nhóm đối tượng một cách thống nhất thông qua cấu trúc
+- **Composite:** Cho phép xử lý các đối tượng đơn lẻ và các nhóm đối tượng một cách thống nhất thông qua cấu trúc cây (tree): client làm việc với một node lá hay một nhóm node con qua cùng một interface.
 - **Facade:** Cung cấp một interface đơn giản để tương tác với một hệ thống phức tạp. Facade giúp che giấu sự phức tạp bên trong và giúp client dễ sử dụng hơn. Facade có thể được sử dụng trong API Gateway hoặc Service Layer.
 - **Proxy:** Cung cấp một đối tượng đại diện để kiểm soát việc truy cập đến một đối tượng khác. Ví dụ trong Magento: các class Proxy được tạo ra để lazy loading object.
 
@@ -85,8 +92,8 @@ Các mẫu phổ biến:
 
 Các mẫu phổ biến:
 
-- **Chain of Responsibility:** Chuyển yêu cầu dọc theo một chuỗi các handler cho đến khi có một handler xử lý được yêu cầu. Magento sử dụng mẫu này để xử lý các phụ thuộc.
-- **Iterator:** Cung cấp cách truy cập tuần tự các phần tử của một tập hợp mà không cần biết cấu trúc bên trong của tập hợp đó. Iterator giúp duyệt qua các collection, block, module, và các phần tử của Composite Pattern.
+- **Chain of Responsibility:** Chuyển yêu cầu dọc theo một chuỗi các handler cho đến khi có một handler xử lý được yêu cầu. Ví dụ trong Magento: `Magento\Framework\App\FrontController::dispatch()` lần lượt gọi `match()` trên từng router trong `RouterListInterface`, router đầu tiên trả về action thì dừng chuỗi.
+- **Iterator:** Cung cấp cách truy cập tuần tự các phần tử của một tập hợp mà không cần biết cấu trúc bên trong của tập hợp đó. Ví dụ trong Magento: `Magento\Framework\Data\Collection` implement `\IteratorAggregate`, nên có thể `foreach ($collection as $item)`; Iterator cũng hay dùng để duyệt các phần tử của Composite Pattern.
 - **Strategy:** Định nghĩa một họ các thuật toán và cho phép các thuật toán này được lựa chọn và sử dụng một cách linh hoạt.
 - **Observer:** Cho phép các đối tượng thông báo cho các đối tượng khác về sự thay đổi trạng thái. Magento sử dụng mẫu này trong hệ thống event.
 

@@ -5,7 +5,7 @@ scope: backend
 status: current
 author: magento-team@
 owner: magento-team@
-updated: 2026-10-20
+updated: 2026-10-28
 tags: [design-pattern, cqrs, architecture]
 ---
 
@@ -72,10 +72,13 @@ Service contract tách rõ method ghi và method đọc:
 |---|---|---|
 | `catalog_product_entity_*` (EAV) | `catalog_product_index_price`, `catalog_product_index_eav`, search index (OpenSearch) | Indexer (`indexer.xml`), "Update by Schedule" dùng mview: trigger ghi vào bảng `*_cl`, cron xử lý |
 | `catalog_product_entity_*` | `catalog_product_flat_<store>` (nếu bật Flat Catalog) | Indexer flat |
-| `sales_order` | `sales_order_grid` | Observer `sales_order_process_relation` (sync) hoặc cron `sales_grid_order_async_insert` khi bật `dev/grid/async_indexing` |
+| `sales_order` | `sales_order_grid` | Observer `sales_grid_order_sync_insert` (`Magento\Sales\Observer\GridSyncInsertObserver`) trên event `sales_order_process_relation` (sync, chỉ refresh grid khi `dev/grid/async_indexing` = 0) hoặc cron `sales_grid_order_async_insert` khi bật `dev/grid/async_indexing` |
 
 - Khi "Update by Schedule" hoặc grid async indexing bật → read model **eventually consistent**, đúng tinh thần CQRS.
-- Storefront/admin grid **query read model**, không join EAV trực tiếp.
+- Các màn đọc chính **query read model** thay vì tự tính từ write model: admin order grid đọc `sales_order_grid` (`Magento\Sales\Model\ResourceModel\Order\Grid\Collection`), storefront lấy giá từ `catalog_product_index_price` (`Product\Collection::addPriceData()`), search/layered navigation đọc search index.
+
+> [!NOTE]
+> Không phải mọi chỗ đều tách hoàn toàn: product collection (`Magento\Catalog\Model\ResourceModel\Product\Collection`) vẫn là EAV collection – attribute chọn bằng `addAttributeToSelect()` được load từ các bảng `catalog_product_entity_*` khi không bật Flat Catalog, và admin product grid (`product_listing` → `Magento\Catalog\Ui\DataProvider\Product\ProductDataProvider`) đọc thẳng EAV.
 - Chi tiết cơ chế trigger → changelog → cron: xem [Indexing trong M2](../Indexing%20trong%20M2.md).
 
 ### 4.3. Inventory (MSI) – command/query interface tách riêng (thực tế trong core)
@@ -89,7 +92,7 @@ MSI thiết kế mỗi service là một interface một method `execute()`, chi
 | `Magento\InventoryReservationsApi\Model\AppendReservationsInterface::execute(array $reservations): void` | `Magento\InventorySalesApi\Api\IsProductSalableInterface::execute(string $sku, int $stockId): bool` |
 
 - Khi đặt hàng, MSI **không trừ trực tiếp** source item mà append một reservation (bảng `inventory_reservation`, append-only, immutable).
-- Salable qty = qty trong stock index (`inventory_stock_<id>`, read model do indexer build) + tổng reservations (`GetReservationsQuantityInterface`).
+- Salable qty = qty trong stock index (`inventory_stock_<id>`, read model do indexer build) + tổng reservations (`GetReservationsQuantityInterface`, reservation khi đặt hàng mang giá trị âm) − Out-of-Stock Threshold (`min_qty`), xem `Magento\InventorySales\Model\GetProductSalableQty::execute()`. Nếu stock item không salable thì trả `0`.
 - Source deduction thực sự xảy ra khi tạo shipment, sau đó reservation bù trừ được ghi thêm → đây là mô hình rất gần CQRS + append-only log.
 
 ```mermaid
@@ -115,7 +118,7 @@ flowchart TD
 
 - `POST /rest/async/V1/products`, `/rest/async/bulk/V1/products`: request ghi được đẩy vào message queue, trả ngay `bulk_uuid`; consumer `async.operations.all` (`Magento\AsynchronousOperations\Model\MassConsumer`) xử lý sau.
 - Đọc trạng thái qua query riêng: `GET /rest/V1/bulk/{bulkUuid}/status`.
-- Tầng PHP: `Magento\Framework\Bulk\BulkManagementInterface::scheduleBulk()` + `Magento\Framework\MessageQueue\PublisherInterface::publish()`.
+- Tầng PHP: `Magento\AsynchronousOperations\Model\MassSchedule::publishMass()` (dùng qua virtualType `Magento\WebapiAsync\Model\MassSchedule`) gọi `Magento\Framework\Bulk\BulkManagementInterface::scheduleBulk()`; impl `Magento\AsynchronousOperations\Model\BulkManagement` lưu bulk + operations rồi tự publish qua `Magento\Framework\MessageQueue\BulkPublisherInterface::publish()` (không phải `PublisherInterface`).
 
 ## 5. Ví dụ code – tách command/query trong module
 

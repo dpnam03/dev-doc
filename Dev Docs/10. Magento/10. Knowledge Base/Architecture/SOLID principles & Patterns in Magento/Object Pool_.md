@@ -5,7 +5,7 @@ scope: backend
 status: current
 author: magento-team@
 owner: magento-team@
-updated: 2026-10-20
+updated: 2026-10-28
 tags: [design-pattern, object-pool, creational]
 ---
 
@@ -21,6 +21,9 @@ Object Pool giúp tận dụng lại Config, Context, … or reuse Object.
 
 Object pool được sử dụng vào Magento đẻ build Object Manager.
 
+> [!NOTE]
+> Object Pool không phải pattern GoF. Theo [SourceMaking – Object Pool](https://sourcemaking.com/design_patterns/object_pool), client **acquire** một object từ pool, dùng riêng, rồi **release** trả lại pool để client khác dùng lại; pool có `acquire()`/`release()` và dọn object không dùng. `ObjectManager` của Magento không có acquire/release: `get()` trả về **cùng một** instance trong `$_sharedInstances` cho mọi client cùng lúc và không bao giờ trả lại – Adobe gọi đây là "implementing the singleton pattern by returning the same shared instance" ([ObjectManager](https://developer.adobe.com/commerce/php/development/components/object-manager/)). Vì vậy hiểu ObjectManager là một *cache/registry các shared instance* có ý tưởng giống pool (tái sử dụng object), chứ không phải Object Pool đúng nghĩa.
+
 ## 2. Object Pool trong Magento – ObjectManager
 
 Object Manager trong M2 [\<xem tại\>](../Object%20Manager.md)
@@ -29,7 +32,7 @@ Trong magento, ObjectManager giúp điều hướng quá trình khởi tạo obj
 
 ### 2.1. Magento mô tả trách nhiệm của ObjectManager
 
-- ObjectManager tạo factory classes and proxy classes
+- ObjectManager tạo object bên trong factory và proxy (class Factory/Proxy do code generator sinh ra, không phải ObjectManager): `Factory::create()` gọi `$this->_objectManager->create()`, Proxy gọi `get()` hoặc `create()`
 - Tạo instance của singleton pattern nếu cùng chung một shared_instance
 - Đúng vai trò như một Dependency management trong quá trình tạo preferred class
 - Tự động tạo các parameters trong hàm constructors của class
@@ -64,7 +67,10 @@ flowchart TD
 
 *Hình 2: `Magento\Framework\ObjectManager\ObjectManager` – `get()` dùng mảng `$_sharedInstances` làm pool, `create()` luôn tạo instance mới*
 
-Bên cạnh đó ObjectManager cũng xử lý Object tùy theo môi trường developer, production với các phân vùng area khác nhau.
+Bên cạnh đó ObjectManager cũng xử lý Object tùy theo môi trường DI và theo area:
+
+- `Magento\Framework\App\EnvironmentFactory` chọn `ObjectManager\Environment\Compiled` nếu đã có file `generated/metadata/global.php` (sinh bởi `bin/magento setup:di:compile`), ngược lại dùng `Environment\Developer` (đọc `di.xml` lúc runtime). Việc chọn dựa trên file metadata đã compile, không trực tiếp dựa trên deploy mode developer/production (dù production mode thường đã chạy `setup:di:compile`).
+- Khi load area, `Magento\Framework\App\Area` / `Magento\Framework\App\Http` gọi `$this->_objectManager->configure($configLoader->load($areaCode))` để nạp thêm DI config của area đó (`etc/frontend/di.xml`, `etc/adminhtml/di.xml`…).
 
 ## Tham khảo
 

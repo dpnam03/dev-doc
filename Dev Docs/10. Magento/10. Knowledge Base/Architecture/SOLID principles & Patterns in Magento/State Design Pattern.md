@@ -5,7 +5,7 @@ scope: backend
 status: current
 author: magento-team@
 owner: magento-team@
-updated: 2026-10-20
+updated: 2026-10-28
 tags: [design-pattern, state, behavioral]
 ---
 
@@ -56,6 +56,122 @@ stateDiagram-v2
 
 *Hình 1: Đèn giao thông (Context) chuyển giữa các trạng thái Đỏ, Vàng, Xanh lá – mỗi trạng thái tự quyết định trạng thái kế tiếp*
 
+### Ví dụ PHP – State (Refactoring.Guru)
+
+Conceptual example của [Refactoring.Guru – State in PHP](https://refactoring.guru/design-patterns/state/php/example) (© Alexander Shvets, CC BY-NC-ND 4.0). `Context` ủy thác `request1()`/`request2()` cho state hiện tại; mỗi `ConcreteState` giữ back reference tới `Context` và tự gọi `transitionTo()` để chuyển sang state kế tiếp.
+
+```php
+<?php
+
+namespace RefactoringGuru\State\Conceptual;
+
+/**
+ * The Context defines the interface of interest to clients. It also
+ * maintains a reference to an instance of a State subclass, which represents
+ * the current state of the Context.
+ */
+class Context
+{
+    /**
+     * @var State A reference to the current state of the Context.
+     */
+    private $state;
+
+    public function __construct(State $state)
+    {
+        $this->transitionTo($state);
+    }
+
+    /**
+     * The Context allows changing the State object at runtime.
+     */
+    public function transitionTo(State $state): void
+    {
+        echo "Context: Transition to " . get_class($state) . ".\n";
+        $this->state = $state;
+        $this->state->setContext($this);
+    }
+
+    /**
+     * The Context delegates part of its behavior to the current State
+     * object.
+     */
+    public function request1(): void
+    {
+        $this->state->handle1();
+    }
+
+    public function request2(): void
+    {
+        $this->state->handle2();
+    }
+}
+
+/**
+ * The base State class declares methods that all Concrete State should
+ * implement and also provides a backreference to the Context object, associated
+ * with the State. This backreference can be used by States to transition the
+ * Context to another State.
+ */
+abstract class State
+{
+    /**
+     * @var Context
+     */
+    protected $context;
+
+    public function setContext(Context $context)
+    {
+        $this->context = $context;
+    }
+
+    abstract public function handle1(): void;
+
+    abstract public function handle2(): void;
+}
+
+/**
+ * Concrete States implement various behaviors, associated with a state of
+ * the Context.
+ */
+class ConcreteStateA extends State
+{
+    public function handle1(): void
+    {
+        echo "ConcreteStateA handles request1.\n";
+        echo "ConcreteStateA wants to change the state of the context.\n";
+        $this->context->transitionTo(new ConcreteStateB());
+    }
+
+    public function handle2(): void
+    {
+        echo "ConcreteStateA handles request2.\n";
+    }
+}
+
+class ConcreteStateB extends State
+{
+    public function handle1(): void
+    {
+        echo "ConcreteStateB handles request1.\n";
+    }
+
+    public function handle2(): void
+    {
+        echo "ConcreteStateB handles request2.\n";
+        echo "ConcreteStateB wants to change the state of the context.\n";
+        $this->context->transitionTo(new ConcreteStateA());
+    }
+}
+
+/**
+ * The client code.
+ */
+$context = new Context(new ConcreteStateA());
+$context->request1();
+$context->request2();
+```
+
 ## 5. Cách hoạt động
 
 1. **Context** lưu trữ một tham chiếu đến đối tượng **State** hiện tại.
@@ -78,7 +194,7 @@ stateDiagram-v2
 
 ### 7.2. Nhược điểm
 
-- **Phức tạp:** Có thể làm cho code phức tạp hơn nếu có quá nhiều trạng thái.
+- **Overkill:** Áp dụng pattern có thể thừa nếu state machine chỉ có vài trạng thái hoặc hiếm khi thay đổi ([refactoring.guru – State](https://refactoring.guru/design-patterns/state#pros-cons)); mỗi trạng thái là một class nên số class tăng theo số trạng thái.
 - **Khó kiểm thử:** Việc kiểm thử các tương tác giữa các trạng thái có thể khó khăn.
 
 ## Tham khảo
