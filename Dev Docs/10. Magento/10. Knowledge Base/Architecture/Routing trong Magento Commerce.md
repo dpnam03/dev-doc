@@ -5,7 +5,7 @@ scope: backend
 status: current
 author: magento-team@
 owner: magento-team@
-updated: 2026-10-20
+updated: 2026-10-29
 tags: [routing, request-flow, router, front-controller]
 ---
 
@@ -24,9 +24,8 @@ tags: [routing, request-flow, router, front-controller]
 - `pub/static.php`: Entry point for static resources (JS, CSS, etc.)
 - `pub/get.php`: Public media files entry point
 - `pub/health_check.php`: Health check
-- `pub/cron.php`: Scheduled jobs entry point use admin instead command, schedule
-  `php bin/magento cron:run`
-- `pub/errors`: Server has errors
+- `pub/cron.php`: chạy cron qua HTTP (store `admin`). Gọi từ CLI sẽ bị từ chối, phải dùng `php bin/magento cron:run`
+- `pub/errors/`: trang lỗi/maintenance (404, 503, error report), không phải entry point
 - `pub/index.php`: the application entry point
 
 Chúng ta sẽ xem cách thức hoạt động của một request tới `pub/index.php`
@@ -48,7 +47,7 @@ $bootstrap = Bootstrap::create(BP, $_SERVER);
 $app = $bootstrap->createApplication(\Magento\Framework\App\Http::class);
 ```
 
-method `createApplication()` sẽ tạo một global `ObjectManager` với type là Http, Cron, Static or Media …
+`Bootstrap::create()` tạo `ObjectManagerFactory` rồi khởi tạo global `ObjectManager` ngay trong constructor của Bootstrap. Method `createApplication($type)` dùng ObjectManager đó để tạo instance application (`Http`, `Cron`, `StaticResource`, `Media`, …) và kiểm tra nó implement `AppInterface` (`Magento\Framework\App\Bootstrap::createApplication()`).
 
 Một ứng dụng sẽ được implement từ interface `\Magento\Framework\AppInterface`
 
@@ -97,9 +96,9 @@ bên cạnh đó bootstrap còn chứa các method để thực hiện check tr�
 - `isInstalled()`
 - `isDeveloperMode()`
 
-Trong quá trình này, ứng dụng sẽ trả về response là kết quá của application khi `launch()`
+Trong quá trình này, ứng dụng sẽ trả về response là kết quả của application khi `launch()`
 
-Nếu có lỗi xảy ra, thì lỗi lỗi sẽ được xử lý trong application `catchException()`
+Nếu có lỗi xảy ra, thì lỗi sẽ được xử lý trong application `catchException()`
 
 ```mermaid
 sequenceDiagram
@@ -134,7 +133,7 @@ sequenceDiagram
 
 ### 2.1. Area
 
-Để dễ dàng tối ưu hóa, Magento đã thực được chia nhỏ thành nhiều phân vùng, mỗi phân vùng sẽ chứa các config, và xử lý với các router khác nhau.
+Để dễ dàng tối ưu hóa, Magento đã được chia nhỏ thành nhiều phân vùng, mỗi phân vùng sẽ chứa các config, và xử lý với các router khác nhau.
 
 - `adminhtml`: admin area được xử lý
 - `frontend`: storefront area
@@ -153,7 +152,7 @@ Application sẽ được tạo dựa trên area & state
 
 Sau đó, tùy thuộc từng loại mỗi loại ứng dụng, mode, area thì DI sẽ được load thêm các config DI thông qua `$configLoader, $state, $areaCode` : `Magento\Framework\ObjectManager\ConfigLoaderInterface`
 
-Chúng ta có thể thấy trong `Magento\Framework\App\Http:launch()`
+Chúng ta có thể thấy trong `Magento\Framework\App\Http::launch()`
 
 **Source:** `Magento\Framework\App\Http::launch()`
 
@@ -188,7 +187,7 @@ Bên trong bootstrap chúng ta sẽ thấy, bootstrap sẽ sử dụng một Obj
 $this->objectManager = $this->factory->create($this->server);
 ```
 
-ObjectManagerFactory sẽ khởi tạo một global ObjectManage được inject các config, server data chúng ta có thể xem func:
+ObjectManagerFactory sẽ khởi tạo một global ObjectManager được inject các config, server data chúng ta có thể xem func:
 
 **Source:** `Magento\Framework\App\Bootstrap::createObjectManagerFactory()`
 
@@ -212,7 +211,7 @@ public static function createObjectManagerFactory($rootDir, array $initParams)
 Chúng ta sẽ thấy các config global sẽ được thiết lập sẵn để khởi tạo ObjectManager
 
 ```php
-Magento\Framework\App\ObjectManagerFactory::create((array $arguments)
+Magento\Framework\App\ObjectManagerFactory::create(array $arguments)
 ```
 
 - definition
@@ -247,10 +246,8 @@ $objectManager->configure([
 
 Với các phân vùng kiểu HTTP request được định nghĩa như một `FrontControllerInterface` và config một `FrontName`
 
-- adminhtml, storefront: Controller router
-- webapi_rest: Rest api router
-- webapi_soap: Soap api
-- graphql: graphql api
+- `frontend`, `adminhtml`: `Magento\Framework\App\FrontController` + RouterList (preference mặc định trong `app/etc/di.xml`)
+- `webapi_rest`/`webapi_soap`/`graphql`: không dùng RouterList, preference `FrontControllerInterface` được thay bằng `Magento\Webapi\Controller\Rest` / `Magento\Webapi\Controller\Soap` / `Magento\GraphQl\Controller\GraphQl` (khai báo ở `etc/<area>/di.xml`)
 
 ```xml
 <!-- config frontname -->
@@ -293,6 +290,7 @@ flowchart TD
 | **Name** | **Sort order** | **Description** |
 |---|---|---|
 | [robots](https://github.com/magento/magento2/blob/2.4/app/code/Magento/Robots/Controller/Router.php) | 10 | Router này được sử dụng để xử lý các request đến file robots.txt |
+| securitytxt (`Magento\Securitytxt\Controller\Router`) | 10 | Xử lý `/.well-known/security.txt` |
 | [urlrewrite](https://github.com/magento/magento2/blob/2.4/app/code/Magento/UrlRewrite/Controller/Router.php) | 20 | Router này sẽ cố gắng match request với các URL đã được định nghĩa trong database |
 | [standard](https://github.com/magento/magento2/blob/2.4/lib/internal/Magento/Framework/App/Router/Base.php) | 30 | Router này xử lý các request theo cách thông thường của Magento |
 | [cms](https://github.com/magento/magento2/blob/2.4/app/code/Magento/Cms/Controller/Router.php) | 60 | Router này match các request liên quan đến các CMS page |
@@ -305,26 +303,22 @@ flowchart TD
 | [admin](https://github.com/magento/magento2/blob/2.4/app/code/Magento/Backend/App/Router.php) | 10 | Router này xử lý các request trong khu vực Admin |
 | [default](https://github.com/magento/magento2/blob/2.4/lib/internal/Magento/Framework/App/Router/DefaultRouter.php) | 100 | default router |
 
-- Standard router
-- Default router
-- Custom routers
-- Action class
-- Result object
+> [!NOTE]
+> Hai bảng trên chưa phải danh sách đầy đủ (module khác có thể thêm router, VD `wellknown` của Payment Services). Liệt kê router thực tế của project: `grep -rn 'App\\RouterList' vendor/magento app/code --include=di.xml`.
+
+Chi tiết về Action class, `routes.xml`, validate request và Result object: xem [Controller](API%20Rest%2C%20Soap%20%26%20Graphql/Controller.md).
 
 ## 4. Rest – `Magento\Webapi\Controller\Rest`
 
-> [!NOTE]
-> Nội dung đang được cập nhật.
+Xem chi tiết: [Controller](API%20Rest%2C%20Soap%20%26%20Graphql/Controller.md) và [REST](API%20Rest%2C%20Soap%20%26%20Graphql/REST.md).
 
 ## 5. Soap – `Magento\Webapi\Controller\Soap`
 
-> [!NOTE]
-> Nội dung đang được cập nhật.
+Xem chi tiết: [Controller](API%20Rest%2C%20Soap%20%26%20Graphql/Controller.md).
 
 ## 6. Graphql – `Magento\GraphQl\Controller\GraphQl`
 
-> [!NOTE]
-> Nội dung đang được cập nhật.
+Xem chi tiết: [Controller](API%20Rest%2C%20Soap%20%26%20Graphql/Controller.md) và [Graphql](API%20Rest%2C%20Soap%20%26%20Graphql/Graphql.md).
 
 ## Tham khảo
 

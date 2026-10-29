@@ -5,7 +5,7 @@ scope: backend
 status: current
 author: magento-team@
 owner: magento-team@
-updated: 2026-10-20
+updated: 2026-10-29
 tags: [registry, deprecated, service-contract]
 ---
 
@@ -17,19 +17,19 @@ tags: [registry, deprecated, service-contract]
 
 Registry model `Magento\Framework\Registry` sử dụng để share dữ liệu tạm thời giữa các services, class trong Magento.
 
-Registry được khuyến nghị không nên sử dụng `usage should be avoid`, nhưng chúng ta sẽ cùng đi vào tìm hiểu registry là gì, làm gì, tại sao không nên sử dụng và làm như thế nào để thay thế Registry trong Magento.
+Registry đã bị đánh dấu `@deprecated 102.0.0`, docblock của class ghi: *"Registry usage as a shared service introduces temporal, hard to detect coupling into system. Its usage should be avoided. Use service classes or data providers instead."* Chúng ta sẽ cùng đi vào tìm hiểu registry là gì, làm gì, tại sao không nên sử dụng và làm như thế nào để thay thế Registry trong Magento.
 
-Đầu tiên, registry sẽ được khởi tạo như một giá trị global trên toàn bộ ứng dụng
+Đầu tiên, registry là một shared instance (singleton qua ObjectManager), nên mọi class inject nó đều đọc/ghi chung một mảng dữ liệu, giống như một giá trị global trên toàn bộ ứng dụng
 
-Các giá trị cần share sẽ được lưu vào một registry collection:
+Các giá trị cần share sẽ được lưu vào một registry collection (property `private`):
 
-`Magento\Framework\Registry:$_registry`
+`Magento\Framework\Registry::$_registry`
 
 Bên trong registry chúng ta sẽ có các phương thức:
 
-- `register()`: để tạo mới một giá trị lưu vào trong registry
+- `register($key, $value, $graceful = false)`: để tạo mới một giá trị lưu vào trong registry; nếu key đã tồn tại thì throw `RuntimeException` (hoặc bỏ qua khi `$graceful = true`)
 - `registry()`: lấy ra giá trị đã lưu trong registry
-- `unregister()`: Xóa bỏ giá trị đã lưu trong registry đồng thời `__destruct` nếu giá trị lưu trong đó là một object.
+- `unregister()`: Xóa key khỏi registry (`unset`). Object chỉ được giải phóng khi không còn tham chiếu nào khác.
 
 Vậy trong quá trình chạy registry sẽ lưu trực tiếp các biến vào trong quá trình chạy.
 
@@ -41,7 +41,7 @@ Khi giá trị được lưu trữ trên global và dễ dàng thay đổi thì 
 
 Vì giá trị này là global nên bản thân cũng tồn tại nhiều rủi ro về bảo mật khi có thể access, và modify từ mọi nơi.
 
-Bên cạnh đấy là vấn đề hiệu suất và tràn memory, vì registry sử dụng trực tiếp lưu giá trị vào một mảng global.
+Bên cạnh đấy là vấn đề memory: giá trị được lưu trong mảng của một shared instance nên tồn tại suốt request nếu không `unregister()` (trong 2.4.8, `Registry` còn implement `ResetAfterRequestInterface::_resetState()` để `Magento\Framework\ObjectManager\Resetter\Resetter` xóa toàn bộ registry sau khi request đã được gửi, dùng khi chạy application server).
 
 Cập nhật, thay thế giá trị của registry sẽ có thể ảnh hưởng đến module khác, nên ảnh hưởng đến quá trình nâng cấp hệ thống.
 
@@ -75,18 +75,28 @@ flowchart LR
 **Ví dụ:**
 
 ```php
+use Magento\Catalog\Api\CategoryRepositoryInterface;
+use Magento\Catalog\Api\Data\CategoryInterface;
+use Magento\Catalog\Model\Session as CatalogSession;
+
 /**
  * GetCurrentCategoryService
  */
 class GetCurrentCategoryService
 {
-    private $currentCategory;
+    private ?CategoryInterface $currentCategory = null;
+
+    public function __construct(
+        private readonly CatalogSession $catalogSession,
+        private readonly CategoryRepositoryInterface $categoryRepository
+    ) {
+    }
 
     public function getCategory(): ?CategoryInterface
     {
         if (!$this->currentCategory) {
-            $currentCategoryId = $this->catalogSession->getData('last_viewed_category_id');
-            $this->currentCategory = $this->categoryRepository->get($categoryId);
+            $categoryId = $this->catalogSession->getLastViewedCategoryId();
+            $this->currentCategory = $categoryId ? $this->categoryRepository->get($categoryId) : null;
         }
 
         return $this->currentCategory;

@@ -5,7 +5,7 @@ scope: backend
 status: current
 author: magento-team@
 owner: magento-team@
-updated: 2026-10-20
+updated: 2026-10-29
 tags: [config, env-php, directory-list, deployment]
 ---
 
@@ -18,7 +18,7 @@ tags: [config, env-php, directory-list, deployment]
 **Source:** `Magento\Framework\App\Filesystem\DirectoryList::getDefaultConfig()`
 
 ```php
-/** Magento\Framework\App\Filesystem\DirectoryList */
+/** vendor/magento/framework/App/Filesystem/DirectoryList.php (2.4.8) */
 public static function getDefaultConfig()
 {
     $result = [
@@ -27,18 +27,19 @@ public static function getDefaultConfig()
         self::CONFIG => [parent::PATH => 'app/etc'],
         self::LIB_INTERNAL => [parent::PATH => 'lib/internal'],
         self::VAR_DIR => [parent::PATH => 'var'],
+        /** @deprecated  */
         self::VAR_EXPORT => [parent::PATH => 'var/export'],
         self::CACHE => [parent::PATH => 'var/cache'],
         self::LOG => [parent::PATH => 'var/log'],
         self::DI => [parent::PATH => 'generated/metadata'],
         self::GENERATION => [parent::PATH => Io::DEFAULT_DIRECTORY],
         self::SESSION => [parent::PATH => 'var/session'],
-        self::MEDIA => [parent::PATH => 'pub/media', parent::URL_PATH => 'pub/media'],
-        self::STATIC_VIEW => [parent::PATH => 'pub/static', parent::URL_PATH => 'pub/static'],
-        self::PUB => [parent::PATH => 'pub', parent::URL_PATH => 'pub'],
+        self::MEDIA => [parent::PATH => 'pub/media', parent::URL_PATH => 'media'],
+        self::STATIC_VIEW => [parent::PATH => 'pub/static', parent::URL_PATH => 'static'],
+        self::PUB => [parent::PATH => 'pub', parent::URL_PATH => ''],
         self::LIB_WEB => [parent::PATH => 'lib/web'],
         self::TMP => [parent::PATH => 'var/tmp'],
-        self::UPLOAD => [parent::PATH => 'pub/media/upload', parent::URL_PATH => 'pub/media/upload'],
+        self::UPLOAD => [parent::PATH => 'pub/media/upload', parent::URL_PATH => 'media/upload'],
         self::TMP_MATERIALIZATION_DIR => [parent::PATH => 'var/view_preprocessed/pub/static'],
         self::TEMPLATE_MINIFICATION_DIR => [parent::PATH => 'var/view_preprocessed'],
         self::SETUP => [parent::PATH => 'setup/src'],
@@ -46,6 +47,7 @@ public static function getDefaultConfig()
         self::GENERATED => [parent::PATH => 'generated'],
         self::GENERATED_CODE => [parent::PATH => Io::DEFAULT_DIRECTORY],
         self::GENERATED_METADATA => [parent::PATH => 'generated/metadata'],
+        self::VAR_IMPORT_EXPORT => [parent::PATH => 'var', parent::URL_PATH => 'import_export'],
     ];
     return parent::getDefaultConfig() + $result;
 }
@@ -80,7 +82,7 @@ Examples of environment or system-specific values include:
 - Hostnames
 - Domain names
 - Paths (e.g., custom paths, proxy host, proxy port)
-- "modes" (e.g, sandbox mode, debug mode, test mode)
+- "modes" (e.g., sandbox mode, debug mode, test mode)
 - SSL (only for non-payment)
 - E-mail recipients
 - Administrative settings between systems (e.g., password expiration limits)
@@ -118,7 +120,7 @@ The general format of system settings variable names follows:
 
   Store view scope variables, for example, have the following format:
 
-  `CONFIG__STORES__ <STORE_VIEW_CODE>__<SYSTEM__VARIABLE__NAME>`
+  `CONFIG__STORES__<STORE_VIEW_CODE>__<SYSTEM__VARIABLE__NAME>`
 
 For more information about scopes, see:
 
@@ -128,17 +130,22 @@ For more information about scopes, see:
 
 ### 3.2. How to use environment variables
 
-Set configuration values as variables using PHP’s `$_ENV` associate array. You can set the values in any PHP script that runs when Commerce runs.
+Set configuration values as variables using PHP’s `$_ENV` associative array. You can set the values in any PHP script that runs when Commerce runs.
 
 > [!TIP]
 > Setting variable values in `index.php` or `pub/index.php` does not always function as expected since different application entry points can be used depending on the web server configuration. By placing `$_ENV` directives in the `app/bootstrap.php` file, regardless of different application entry points, the `$_ENV` directives always execute since the `app/bootstrap.php` file loads as part of the Commerce architecture.
 
+> [!WARNING]
+> Để `$_ENV` có giá trị từ môi trường server/php-fpm, `php.ini` phải đặt `variables_order = "EGPCS"`. Nếu không, `Magento\Config\Model\Config\Processor\EnvironmentPlaceholder` (chỉ đọc `$_ENV`) không thấy biến `CONFIG__…`.
+
 **Ví dụ:** An example of setting two `$_ENV` values follows:
 
 ```php
-$_ENV['CONFIG__DEFAULT__CATALOG__SEARCH__ELASTICSEARCH_SERVER_HOSTNAME'] = 'http://search.example.com';
+$_ENV['CONFIG__DEFAULT__CATALOG__SEARCH__OPENSEARCH_SERVER_HOSTNAME'] = 'search.example.com';
 $_ENV['CONFIG__DEFAULT__GENERAL__STORE_INFORMATION__MERCHANT_VAT_NUMBER'] = '1234';
 ```
+
+*Adobe doc vẫn dùng path cũ `catalog/search/elasticsearch_server_hostname`, không còn trong 2.4.8 (chỉ có `opensearch_server_hostname` / `elasticsearch8_server_hostname`).*
 
 [Override configuration settings | Adobe Commerce](https://experienceleague.adobe.com/en/docs/commerce-operations/configuration-guide/paths/override-config-settings#environment-variables)
 

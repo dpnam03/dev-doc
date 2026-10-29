@@ -5,7 +5,7 @@ scope: backend
 status: current
 author: magento-team@
 owner: magento-team@
-updated: 2026-10-20
+updated: 2026-10-29
 tags: [indexer, indexing, mview, performance]
 ---
 
@@ -86,7 +86,7 @@ Tham khảo: [Indexing – Adobe Commerce PHP Developer Guide](https://developer
 | Update by Schedule | `schedule` | MySQL trigger ghi ID thay đổi vào changelog, cron xử lý theo batch. |
 
 > [!NOTE]
-> Từ 2.4.8, `customer_grid` hỗ trợ cả hai mode và mặc định là Update by Schedule (trước 2.4.8 chỉ hỗ trợ Update on Save).
+> Từ 2.4.8, mọi indexer **mới** (cài mới, hoặc indexer mới thêm khi upgrade) mặc định Update by Schedule (`Magento\Indexer\Setup\Recurring::install()`); indexer đã có state giữ nguyên mode cũ. `customer_grid` cũng hỗ trợ cả hai mode và mặc định là Update by Schedule (trước 2.4.8 chỉ hỗ trợ Update on Save). Xem [Adobe Commerce 2.4.8 release notes](https://experienceleague.adobe.com/en/docs/commerce-operations/release/notes/adobe-commerce/2-4-8).
 
 ### 2.4. Changelog tables & triggers (schedule mode)
 
@@ -95,14 +95,16 @@ Khi chuyển indexer sang `schedule`, `Magento\Framework\Mview\View::subscribe()
 1. Bảng changelog `<view_id>_cl` (VD: `catalog_category_product_cl`) gồm `version_id` (auto increment) và `entity_id`.
 2. MySQL `AFTER INSERT / UPDATE / DELETE` trigger trên mỗi bảng trong `<subscriptions>`:
 
-```sql
--- trigger AFTER INSERT trên catalog_category_entity (ví dụ trong Adobe docs)
-INSERT IGNORE INTO `catalog_category_product_cl` (`entity_id`) VALUES (NEW.`entity_id`);
+```php
+// vendor/magento/framework/Mview/View/Subscription.php — buildStatement()
+$trigger = "%sINSERT IGNORE INTO %s (%s) VALUES (%s);";
 ```
+
+VD: trigger `AFTER INSERT` trên `catalog_category_entity` chạy `INSERT IGNORE INTO catalog_category_product_cl (entity_id) VALUES (NEW.entity_id);`.
 
 3. Cron đọc `mview_state.version_id` → lấy các `entity_id` mới trong `_cl` → gọi `execute($ids)` → cập nhật `version_id`.
 
-Chuyển về `realtime` thì trigger bị xoá (changelog vẫn còn).
+Chuyển về `realtime` (`Indexer::setScheduled(false)` → `View::unsubscribe()`) thì trigger bị xoá, bảng changelog `_cl` bị drop (`version_id` về 0) và indexer bị đánh dấu `invalid`, nên cần full reindex.
 
 ```mermaid
 flowchart TD
@@ -287,10 +289,10 @@ bin/magento indexer:reindex vendor_product_popularity
 - **Production nên dùng Update by Schedule** cho hầu hết indexer, đặc biệt store nhiều SKU / import thường xuyên. Update on Save làm chậm admin save và API import.
 - Đảm bảo cron chạy ổn định (`bin/magento cron:run` qua crontab). Theo dõi backlog bằng `indexer:status`.
 - Tránh `indexer:reindex` full trên production giờ cao điểm; full reindex price/search có thể lock bảng hoặc tốn nhiều giờ.
-- Full reindex nên build vào bảng tạm rồi swap (pattern của core: `Magento\Framework\Indexer\Table\StrategyInterface` / table switching) để storefront không đọc index rỗng.
+- Full reindex nên build vào bảng `<index>_replica` rồi rename-swap (pattern của core: `Magento\Catalog\Model\ResourceModel\Indexer\ActiveTableSwitcher::switchTable()`) để storefront không đọc index rỗng; xem [Indexer optimization](https://developer.adobe.com/commerce/php/development/components/indexing/optimization). (`Magento\Framework\Indexer\Table\StrategyInterface` chỉ lo bảng trung gian `_idx`/`_tmp`, không swap bảng.)
 - Tối ưu batch size cho price/EAV indexer qua `di.xml` (`BatchSizeCalculator`, `batchRowsCount`) hoặc `indexer.batch_size` trong `env.php` (2.4.3+).
 - Custom indexer: `executeFull()` phải idempotent; `execute($ids)` phải xử lý được ID trùng lặp và ID đã bị xoá.
-- Khi thêm bảng vào `<subscriptions>` của indexer đang ở schedule mode: cần chuyển `realtime` → `schedule` lại (hoặc `setup:upgrade`) để tạo trigger mới.
+- Khi thêm bảng vào `<subscriptions>` của indexer đang ở schedule mode: chạy `bin/magento setup:upgrade` (`Magento\Framework\Mview\TriggerCleaner` tạo lại trigger cho view đang enabled, không mất backlog). Chỉ toggle `realtime` → `schedule` khi chấp nhận mất changelog và phải full reindex.
 - Trạng thái `suspended` (2.4.7+) hữu ích khi import lớn: tạm dừng cron indexer, import xong set lại `valid`/`invalid`.
 - Indexer liên quan trực tiếp tới cache: sau khi reindex, FPC/block cache của entity được clean theo cache tag (xem [Magento Cache](Magento%20Cache.md)).
 

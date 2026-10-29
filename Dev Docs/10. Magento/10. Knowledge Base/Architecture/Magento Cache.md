@@ -5,7 +5,7 @@ scope: backend
 status: current
 author: magento-team@
 owner: magento-team@
-updated: 2026-10-20
+updated: 2026-10-29
 tags: [cache, full-page-cache, cache-type, performance]
 ---
 
@@ -23,20 +23,23 @@ tags: [cache, full-page-cache, cache-type, performance]
 | Layouts | layout | `LAYOUT_GENERAL_CACHE_TAG` |
 | Blocks HTML output | block_html | `BLOCK_HTML` |
 | Collections Data | collections | `COLLECTION_DATA` |
-| Reflections | reflection | `REFLECTION` |
+| Reflection Data | reflection | `REFLECTION` |
 | Database DDL operations | db_ddl | `DB_DDL` |
 | Compiled Config | compiled_config | `COMPILED_CONFIG` |
-| Webhooks Response Cache | webhooks_response | `WEBHOOKS_RESPONSE` |
+| Webhooks Response Cache *(chỉ Adobe Commerce)* | webhooks_response | `WEBHOOKS_RESPONSE` |
 | EAV types and attributes | eav | `EAV` |
 | Customer Notification | customer_notification | `CUSTOMER_NOTIFICATION` |
 | GraphQL Query Resolver Results | graphql_query_resolver_result | `GRAPHQL_QUERY_RESOLVER_RESULT` |
 | Integrations Configuration | config_integration | `INTEGRATION` |
 | Integrations API Configuration | config_integration_api | `INTEGRATION_API_CONFIG` |
-| Admin UI SDK Cache | admin_ui_sdk | `ADMIN_UI_SDK` |
+| Admin UI SDK Cache *(chỉ Adobe Commerce)* | admin_ui_sdk | `ADMIN_UI_SDK` |
 | Page Cache | full_page | `FPC` |
-| Target Rule | target_rule | `TARGET_RULE` |
+| Target Rule *(chỉ Adobe Commerce)* | target_rule | `TARGET_RULE` |
 | Web Services Configuration | config_webservice | `WEBSERVICE` |
 | Translations | translate | `TRANSLATE` |
+
+> [!NOTE]
+> Các cache type đánh dấu *(chỉ Adobe Commerce)* không có trong Magento Open Source 2.4.8 ([Manage the cache](https://experienceleague.adobe.com/en/docs/commerce-operations/configuration-guide/cli/manage-cache)).
 
 ### 1.1. Configuration Cache
 
@@ -48,12 +51,10 @@ CACHE_TAG: `'CONFIG'`
 
 base từ `Magento\Framework\Cache\Frontend\Decorator\TagScope`
 
-TagScope là một Decorator đc thiết kế để save, clean cache `Tag` trong frontend
+TagScope là một Decorator tự gắn `CACHE_TAG` của cache type khi `save()` và giới hạn `clean()` trong phạm vi tag đó; `load()`, `remove()` được ủy quyền xuống frontend (kế thừa từ `Magento\Framework\Cache\Frontend\Decorator\Bare`)
 
-- load
-- save
-- remove
-- clean
+- save – thêm tag của type vào cache entry
+- clean – chỉ clean các entry có tag của type
 
 Đây là global config của Magento, có thể tìm thấy cache này ở rất nhiều nơi:
 
@@ -80,7 +81,7 @@ if (!$data) {
 
 System / Cache Management / Cache type "Layouts"
 
-Class: `Magento\Framework\App\Cache\Type`
+Class: `Magento\Framework\App\Cache\Type\Layout`
 
 CACHE_TAG = `'LAYOUT_GENERAL_CACHE_TAG'`
 
@@ -90,7 +91,7 @@ CACHE_TAG = `'LAYOUT_GENERAL_CACHE_TAG'`
 - `Magento\Widget\Model\ResourceModel\Layout\Update`
 - `Magento\Framework\View\Model\Layout\Merge`
 
-`Layout Cache` này sẽ lưu lại các handles của khi `layout_load`
+`Layout Cache` này lưu layout XML đã merge theo tập handles của page (`Magento\Framework\View\Model\Layout\Merge::load()`) và layout structure đã generate (`Magento\Framework\View\Layout::generateElements()`); handles được dùng làm cache tag
 
 cacheId: `$this->generateCacheId(md5(implode('|', array_merge($this->getHandles(), $layoutCacheKeys))))`
 
@@ -111,7 +112,7 @@ if (!$result) {
 
 CACHE_TAG = `'BLOCK_HTML'`
 
-Block HTML Cache sẽ cache lại cache theo từng khối template
+Block HTML Cache sẽ cache lại HTML output theo từng block template
 
 Block Cache được thực thi tại `Magento\Framework\View\Element\AbstractBlock`
 
@@ -138,32 +139,47 @@ Xem lại cache key của block trong AbstractBlock:
 **Source:** `Magento\Framework\View\Element\AbstractBlock::getCacheKey()`
 
 ```php
-CACHE_KEY_PREFIX = 'BLOCK_';
+// Magento\Framework\View\Element\AbstractBlock
+public const CACHE_KEY_PREFIX = 'BLOCK_';
+
+public const CUSTOM_CACHE_KEY_PREFIX = 'CUSTOM_BLOCK_';
 
 /**
  * Get Key for caching block content
  *
  * @return string
+ * @throws RuntimeException
  */
 public function getCacheKey()
 {
     if ($this->hasData('cache_key')) {
-        return static::CACHE_KEY_PREFIX . $this->getData('cache_key');
+        if (preg_match('/[^a-z0-9\-\_]/i', $this->getData('cache_key'))) {
+            throw new RuntimeException(__('Please enter cache key with only alphanumeric or hash string.'));
+        }
+
+        return static::CUSTOM_CACHE_KEY_PREFIX . $this->getData('cache_key');
     }
+
     /**
      * don't prevent recalculation by saving generated cache key
      * because of ability to render single block instance with different data
      */
     $key = $this->getCacheKeyInfo();
+
     $key = array_values($key);  // ignore array keys
+
+    $key[] = (string)$this->getDeploymentConfig()->get(
+        ConfigOptionsListConstants::CONFIG_PATH_CRYPT_KEY
+    );
+
     $key = implode('|', $key);
-    $key = sha1($key); // use hashing to hide potentially private data
+    $key = hash('sha256', $key); // use hashing to hide potentially private data
     return static::CACHE_KEY_PREFIX . $key;
 }
 ```
 
 > [!NOTE]
-> Để tạo cache cho block thì cần chú ý tới `cache_key` data trong block, và array data của `getCacheKeyInfo` và data `cache_lifetime`
+> Để tạo cache cho block thì cần chú ý tới `cache_key` data trong block (chỉ chữ/số/`-`/`_`, prefix `CUSTOM_BLOCK_`), hoặc array data của `getCacheKeyInfo` + crypt key (hash sha256, prefix `BLOCK_`), và data `cache_lifetime`
 
 ### 1.4. Collections Cache
 
@@ -179,7 +195,7 @@ Bên trong AbstractCollectionDB (`Magento\Framework\Data\Collection\AbstractDb`)
 
 `AbstractCollectionDB::_fetchAll()` sẽ thực hiện một `$fetchStrategy::fetchAll()`
 
-Đầu tiên sẽ dùng FetchStrategyByCache (`Magento\Framework\Data\Collection\Db\FetchStrategy\Cache`) để tìm collection data trong cache, với cacheId là một md5 của query select.
+Mặc định `FetchStrategyInterface` có preference là `Magento\Framework\Data\Collection\Db\FetchStrategy\Query` (luôn query DB, xem `app/etc/di.xml`). Chỉ collection được inject `fetchStrategy` là virtualType của FetchStrategyByCache (`Magento\Framework\Data\Collection\Db\FetchStrategy\Cache`) – vd. Store/Group/Website collection trong `Magento/Store/etc/di.xml`, Category collection trong `Magento/Catalog/etc/frontend/di.xml` – mới tìm collection data trong cache trước, với cacheId là prefix + md5 của query select.
 
 `Magento\Framework\Data\Collection\Db\FetchStrategy\Cache`
 
@@ -214,7 +230,7 @@ protected function _getSelectCacheId($select)
 }
 ```
 
-Khi cache ko tồn tại data thì sẽ sử FetchStrategyByQuery (`Magento\Framework\Data\Collection\Db\FetchStrategy\Query`) để thực hiện query đến DB.
+Khi cache không tồn tại data thì sẽ sử dụng FetchStrategyByQuery (`Magento\Framework\Data\Collection\Db\FetchStrategy\Query`) để thực hiện query đến DB.
 
 ```mermaid
 flowchart TD
@@ -229,7 +245,7 @@ flowchart TD
     H --> I
 ```
 
-*Hình 2: Fetch strategy của collection – cache hit/miss rồi fail over sang query DB*
+*Hình 2: Fetch strategy của collection đã cấu hình `FetchStrategy\Cache` – cache hit/miss rồi fail over sang query DB*
 
 ### 1.5. Reflections Cache
 
@@ -265,17 +281,17 @@ DDL is short name of Data Definition Language, which deals with database schemas
 - `ALTER` – alters the structure of the existing database.
 - `DROP` – delete objects from the database.
 - `TRUNCATE` – remove all records from a table; also, all spaces allocated for the records are removed.
-- `COMMENT` – add comments to the data dictionary.
+- `COMMENT` – add comments to the data dictionary (cú pháp Oracle; với MySQL/MariaDB, comment là mệnh đề `COMMENT '...'` trong `CREATE/ALTER TABLE`).
 - `RENAME` – rename an object.
 
-Magento sẽ cache một số operation: `DDL_CREATE`, `DDL_DESCRIBE`, `DDL_INDEX`, `DDL_FOREIGN_KEY`
+Magento không cache câu lệnh DDL mà cache kết quả đọc metadata schema của `Magento\Framework\DB\Adapter\Pdo\Mysql`: `describeTable()` (`DDL_DESCRIBE`), `getCreateTable()` (`DDL_CREATE`), `getIndexList()` (`DDL_INDEX`), `getForeignKeys()` (`DDL_FOREIGN_KEY`), `isTableExists()` (`DDL_EXISTS`). Cache được reset qua `resetDdlCache()` khi alter table.
 
 ### 1.7. Cache schema context webapi
 
-Cache schema context cho webapi
+Cache schema context cho webapi: `Magento\Webapi\Model\AbstractSchemaGenerator::generateSchema()` cache schema theo context vào cache type Web Services Configuration (`config_webservice`, tag `WEBSERVICE`). Method này được kế thừa (không override) bởi:
 
-- `Magento\Webapi\Model\Rest\Swagger\Generator::generateSchema()`
-- `Magento\Webapi\Model\Soap\Wsdl\Generator::generateSchema()`
+- `Magento\Webapi\Model\Rest\Swagger\Generator`
+- `Magento\Webapi\Model\Soap\Wsdl\Generator`
 
 ### 1.8. EAV Cache
 
@@ -308,7 +324,7 @@ CACHE_TAG: `EAV_ATTRIBUTE`
 
 ### 1.9. Integration Cache
 
-System / Cache Management / Cache type "Integration Configuration"
+System / Cache Management / Cache type "Integrations Configuration"
 
 **Integration Module: Magento/Integration** enables third-party services to call the Web API by using access tokens.
 
@@ -322,17 +338,17 @@ Integration Config API
 
 Integration Consolidated Config
 
-`Magento\Integration\Mode\ConsolidatedConfig`
+`Magento\Integration\Model\ConsolidatedConfig`
 
 ConsolidatedConfig to deliver information for config-based integrations that use `integration.xml`
 
 ### 1.10. Compiled Config - Interception
 
-Compiled Config sử dụng để lưu data đã compiled của các Interception (Plugin)
+Compiled Config (`Magento\Framework\App\Interception\Cache\CompiledConfig`, tag `COMPILED_CONFIG`) sử dụng để lưu data đã compiled của:
 
-Load configuration for current scope
-
-`Magento\Framework\Interception\PluginList\PluginList::_loadScopedData()`
+- plugin list – `Magento\Framework\Interception\PluginList\PluginList::_loadScopedData()` (load configuration for current scope)
+- danh sách action của router – `Magento\Framework\App\Router\ActionList`
+- config event – `Magento\Framework\Event\Config\Data`
 
 ## 2. Low-level backend cache
 

@@ -5,7 +5,7 @@ scope: backend
 status: current
 author: magento-team@
 owner: magento-team@
-updated: 2026-10-20
+updated: 2026-10-29
 tags: [architecture, module, overview]
 ---
 
@@ -29,7 +29,7 @@ Trong sơ đồ này chúng ta sẽ nhìn thấy cách các thành phần của 
 
 Module Catalog sẽ giải quyết các vấn đề liên quan đến Domain Catalog (thông tin product, category):
 
-- Catalog sẽ tương tác với FE thông quan API (rest, graphql) và front controller (FE này có thể là Storefront, Admin Dashboard, or các hệ thống mobile, tích hợp với 3rd party)
+- Catalog sẽ tương tác với FE thông qua API (rest, graphql) và front controller (FE này có thể là Storefront, Admin Dashboard, or các hệ thống mobile, tích hợp với 3rd party)
 - Kết nối với các module khác thông qua service contracts (Management service, … Repository) như CategoryManagement, ProductRepository,...
 - Các module khác không nên kết nối trực tiếp với tầng xử lý logic cho database (model, resource model) cũng như không trực tiếp lưu trữ dữ liệu vào trong database của catalog.
 
@@ -72,16 +72,16 @@ Chúng ta có thể xem bảng `quote_item`
 
 Cách tiếp cận này sẽ giúp chúng ta dễ dàng mở rộng, và đem lại cải tiến đáng kể về mặt hiệu năng trong ecommerce.
 
-Làm thế nào Magento lưu thông tin sản phẩm, lấy thông tin sản phẩm? Vấn đề này được giải quyết bằng data `order_item`.`product_options` trong DB
-=> Khi user mua hàng thì sẽ đẩy thông tin sản phẩm tại thời điểm mua hàng vào `product_options`. (lưu trữ một phiên bản sản phẩm tại thời điểm user mua hàng)
-=> Vấn đề: Thông tin về sản phẩm (như giá …) sẽ không được cập nhật ngay lập tức tới customer. Chúng ta sẽ thấy ở mỗi bước của mua hàng Magento sẽ `collectTotal` để lấy, và tính toán lại thông tin của đơn hàng hiện tại.
+Làm thế nào Magento lưu thông tin sản phẩm, lấy thông tin sản phẩm? Vấn đề này được giải quyết bằng cách copy thông tin sản phẩm vào chính bảng `sales_order_item` trong DB
+=> Khi user mua hàng thì thông tin sản phẩm tại thời điểm mua hàng được copy vào các cột của `sales_order_item` (`sku`, `name`, `price`, `base_price`, `original_price`, `weight`, `product_type`…), còn options/buyRequest được lưu vào `product_options` (`Magento\Quote\Model\Quote\Item\ToOrderItem` gọi `$orderItem->setProductOptions($options)`). (lưu trữ một phiên bản sản phẩm tại thời điểm user mua hàng)
+=> Vấn đề: Thông tin về sản phẩm (như giá …) sẽ không được cập nhật ngay lập tức tới customer. Chúng ta sẽ thấy ở mỗi bước của mua hàng Magento sẽ gọi `Quote::collectTotals()` để lấy, và tính toán lại thông tin của đơn hàng hiện tại.
 
-Khi truy xuất đọc thông tin của quote, hay order chúng ta sẽ không cần phải join quá nhiều dữ liệu, và data quote, order cũng sẽ ko bị lock bởi các cập nhật thay đổi từ product.
+Khi truy xuất đọc thông tin của quote, hay order chúng ta sẽ không cần phải join quá nhiều dữ liệu, và data quote, order cũng sẽ không bị lock bởi các cập nhật thay đổi từ product.
 
 #### Vấn đề FK
 
-- Khóa ngoại MySQL giới thiệu khóa tăng cường cho dữ liệu và thay đổi siêu dữ liệu. Dự kiến hiệu suất bị giảm, đặc biệt là trong khối lượng công việc đồng thời cao.
-- Khi hai bảng tham gia vào mối quan hệ ràng buộc khóa ngoại, không thể thay đổi kiểu dữ liệu cho các cột được khóa ngoại sử dụng. Ví dụ, không thể thay đổi một cột từ INT thành BIGINT, trên cả bảng cha và bảng con.
+- FK khiến MySQL mở rộng metadata lock và shared lock sang các bảng liên quan khi chạy DML/DDL ("MySQL extends metadata locks, as necessary, to tables that are related by a foreign key constraint"), làm giảm khả năng chạy đồng thời, đặc biệt khi tải cao.
+- Cột FK và cột được tham chiếu phải cùng kiểu, cùng size và dấu ("The size and sign of fixed precision types such as INTEGER and DECIMAL must be the same"), nên không đổi được kiểu một phía: muốn đổi INT → BIGINT phải drop FK, đổi cả bảng cha và bảng con rồi tạo lại FK. Xem [MySQL 8.4 – FOREIGN KEY Constraints](https://dev.mysql.com/doc/refman/8.4/en/create-table-foreign-keys.html).
 - Khi các ứng dụng phát triển, cần phải tái cấu trúc lược đồ. Đây là một quá trình phức tạp hơn bao gồm nhiều bước hơn để tái cấu trúc lược đồ chứa các ràng buộc khóa ngoại.
 - FOREIGN KEY các ràng buộc khó duy trì khi dữ liệu của bạn phát triển và được chia thành nhiều máy chủ cơ sở dữ liệu. Điều này thường xảy ra khi bạn giới thiệu phân vùng/phân mảnh chức năng và/hoặc phân mảnh theo chiều ngang.
 
@@ -138,7 +138,7 @@ Service layer là tầng trung gian giữa presentation layer và domain layer. 
 
 - Bao gồm service contracts
 - Định nghĩa cách thức tương tác thông qua interface
-- Cách thức implement các service contact
+- Cách thức implement các service contract
 
 Tương tác với presentation layer:
 
@@ -152,7 +152,9 @@ Magento cung cấp 3 kiểu định nghĩa interface để implement Service Con
 
 1. Repository interfaces: Định nghĩa các hành động được phép thực hiện, tương tác với model từ module khác
 2. Management interfaces: Định nghĩa các hành động được xử lý của cho từng nghiệp vụ.
-3. Metadata interfaces: Data api
+3. Metadata interfaces: cung cấp metadata của attribute entity (vd. `Magento\Customer\Api\CustomerMetadataInterface::getAttributeMetadata()`).
+
+Data interfaces (`Api/Data/*Interface`) là các data entity truyền vào/trả ra từ service interface. Adobe cũng lưu ý không bắt buộc service contract phải có đủ cả 3 loại interface trên.
 
 > [!NOTE]
 > Service contracts are the recommended way for one module to access another module's domain-level code. This loosely coupled solution is the optimal way for most modules to access another module.
@@ -188,12 +190,12 @@ Các hành động kết nối với hệ thống DB khác.
 
 ## 3. Extensibility and modularity
 
-Magento platform hướng đến 2 tính chất cốt lõi và quang trọng nhất với magento, và cộng đồng các nhà phát triển.
+Magento platform hướng đến 2 tính chất cốt lõi và quan trọng nhất với magento, và cộng đồng các nhà phát triển.
 
 - Extensibility: khả năng mở rộng
 - Modularity: module hóa mỗi module là độc lập
 
-=> Magento hướng đến cộng đồng opensource và khả năng tùy chỉnh, dễ dàng mở rộng, kiểm soát sự mở rộng giữa các thành phần bằng việc module hóa. Vì tập trung hướng đến 2 tính chất này Magento vì vậy cũng đánh đổi rất nhiều so với các hệ thống khác, như shopify vs salesforce …. về sự ổn định (stability) và hiệu năng (performance). Khi cài nhiều module thì sẽ không thể đảm bảo CE thì sự ổn định và hiệu năng của Magento ngày càng giảm. Vì vậy chúng ta cần phải flow theo các nguyên tắc thiết kế để đảm bảo Website Magento chạy ổn định.
+=> Magento hướng đến cộng đồng opensource và khả năng tùy chỉnh, dễ dàng mở rộng, kiểm soát sự mở rộng giữa các thành phần bằng việc module hóa. Vì tập trung hướng đến 2 tính chất này Magento vì vậy cũng đánh đổi rất nhiều so với các hệ thống khác, như shopify vs salesforce …. về sự ổn định (stability) và hiệu năng (performance). Khi cài nhiều module thì sẽ không thể đảm bảo CE thì sự ổn định và hiệu năng của Magento ngày càng giảm. Vì vậy chúng ta cần phải follow theo các nguyên tắc thiết kế để đảm bảo Website Magento chạy ổn định.
 
 ### 3.1. Extensibility
 
@@ -245,7 +247,7 @@ Plugin vì có thể sử dụng nhiều interceptor tới một function vì v�
 
 - Các Interceptor sẽ được generated trong `generated/code`
 - trait `Magento\Framework\Interception\Interceptor`
-- Config cache của DI đc lưu trong: `generated/**|plugin-list.php`
+- Plugin list sau khi compile được lưu trong: `generated/metadata/<scopes>|plugin-list.php` (vd. `global|frontend|plugin-list.php`, xem `Magento\Framework\Interception\PluginListGenerator`)
 
 ### 3.6. So sánh việc sử dụng Event, Plugin & DI
 
@@ -257,16 +259,16 @@ Plugin vì có thể sử dụng nhiều interceptor tới một function vì v�
 
 Mỗi event sẽ thực dispatch để thực hiện thông báo việc đã thực hiện xong hành động và truyền data tới các observer.
 
-Các observer chỉ thực hiện hành động dựa trên thông báo từ Subject, ko thể thực hiện sửa đổi or thay thế hành động của tượng gốc ban đầu. Event-Observer chỉ thay đổi được về data của object được truyền vào bằng các hàm `setData()`.
+Các observer chỉ thực hiện hành động dựa trên thông báo từ Subject, không thể thực hiện sửa đổi hoặc thay thế hành động của đối tượng gốc ban đầu. Event-Observer chỉ thay đổi được về data của object được truyền vào bằng các hàm `setData()`.
 
-Event thường được dispatch trong controller, model, resource model sau, và trước khi các hành động đc thực hiện.
+Event thường được dispatch trong controller, model, resource model sau, và trước khi các hành động được thực hiện.
 Thi thoảng có thể thấy trong view của layout, nhưng cách thiết kế view, block kiểu ntn không hiệu quả lắm vì Magento nên dùng page cache để cải thiện performance.
 
 #### DI: Inject object
 
-DI (dependency injection) sẽ thực hiện thay thế object thông qua ObjectManager. Đối tượng được thay thế sẽ và đối tượng gốc sẽ cũng đc implement một interface.
+DI (dependency injection) sẽ thực hiện thay thế object thông qua ObjectManager. Đối tượng thay thế và đối tượng gốc đều implement một interface.
 
-DI ko hoàn toàn giống như Mage class trong M1 replace object
+DI không hoàn toàn giống như Mage class trong M1 replace object
 
 M2 đưa show cho developer về DI pattern được thực hiện trong M2:
 
@@ -275,10 +277,10 @@ M2 đưa show cho developer về DI pattern được thực hiện trong M2:
 > This allows for loose coupling of code because object A no longer needs to be concerned with initializing its own dependencies. Object B decides which implementations to provide to object A based on a configuration or desired behavior.”
 
 DI sẽ phụ thuộc vào ObjectManager nên chúng sẽ chỉ có thể DI được với các object gọi sau khi ObjectManager khởi tạo.
-DI sẽ không thể tác động vào các object khởi tạo bằng toán tử `new Object();` mà chỉ tác động vào các object instance sử dụng `ObjectManger::get()`
+DI sẽ không thể tác động vào các object khởi tạo bằng toán tử `new Object();` mà chỉ tác động vào các object do ObjectManager tạo (inject qua constructor, Factory, `ObjectManager::get()` / `create()`)
 
-DI config của object được chia theo từng Environment Area sẽ được lưu trữ trong `generated/metadata/{area_config}.php`
-được load khi `ObjectManagerFactory` khởi tạo `ObjectManager` cho từng môi trường.
+Sau `setup:di:compile`, DI config được chia theo từng area và lưu trong `generated/metadata/<area>.php` (`global.php`, `frontend.php`, `adminhtml.php`, `webapi_rest.php`…).
+`global.php` được load khi `ObjectManagerFactory` khởi tạo `ObjectManager`; file của area được load trong `Magento\Framework\App\Http::launch()` sau khi xác định area (`$this->_objectManager->configure($this->_configLoader->load($areaCode))`).
 
 ![Nội dung file DI config đã compile trong generated/metadata: mảng tham số constructor của class Magento\TwoFactorAuth\Block\Provider\Authy\Auth với các khoá _i_, _v_, _vn_](images/magento-architecture-kien-truc-tong-quan-cua-adobe-commerce/image-06.png)
 
@@ -288,7 +290,7 @@ DI config của object được chia theo từng Environment Area sẽ được 
 DI config được load ngay khi khởi tạo đối tượng dựa trên ObjectManager cũng là một ưu điểm giúp sử dụng DI sẽ có hiệu suất nhanh hơn đáng kể so với Plugin.
 Sau khi DI thì vì đối tượng gốc được thay thế bằng đối tượng mới nên hành động của đối tượng mới sẽ dễ kiểm soát, không giống như interceptor là thêm các điểm chặn vào trước và sau của method, và một method có thể bị tác động bởi nhiều interceptor.
 
-DI phù hợp với việc customize các service contract, và sửa các hệ thống cần tối ưu hóa hiệu năng và or hành động xử lý dành riêng chỉ cho project, chỉnh sửa các đối tượng đc implement bởi interface.
+DI phù hợp với việc customize các service contract, và sửa các hệ thống cần tối ưu hóa hiệu năng hoặc hành động xử lý dành riêng chỉ cho project, chỉnh sửa các đối tượng được implement bởi interface.
 
 **Magento 2 Preferences**
 
@@ -305,7 +307,7 @@ Preference là một hành động set một inject một Class(Object) trong qu
 - Nên dùng preference trong các trường hợp bạn thay đổi hoàn toàn Strategy hành động của Object, chỉ thực hiện nó theo interface action:
   VD: Gửi thông báo
   - `MailNotification` implement `NotificationInterface`
-  - `SMSNotfication` implement `NotificationInterface`
+  - `SMSNotification` implement `NotificationInterface`
 
   => Việc thay đổi sẽ giúp chúng ta dễ kiếm soát xử lý hơn việc cố gắng dùng plugin
 - Preference sẽ nhanh hơn Plugin
@@ -373,7 +375,7 @@ Một interceptor nên hạn chế thay đổi dữ liệu đầu vào ra ra c�
 
 - Đưa ra các tiêu chuẩn Coding standard & CI
   [PHP Coding Standard | Commerce PHP Extensions](https://developer.adobe.com/commerce/php/coding-standards/php)
-- Service contact giúp xây dựng ra tiêu chuẩn giao tiếp giữa các module.
+- Service contract giúp xây dựng ra tiêu chuẩn giao tiếp giữa các module.
 - DI & ObjectManager giúp dễ dàng thay đổi
 - Đưa ra các tài liệu đặc tả mô tả tính năng và phạm vi của từng service, module.
 - Xây dựng DB giảm thiểu sự phụ thuộc với các service, module khác.
@@ -391,7 +393,7 @@ Một interceptor nên hạn chế thay đổi dữ liệu đầu vào ra ra c�
 ## 5. Magento Setup
 
 Thông tin về setup của Magento có thể xem nhiều hơn tại:
-[Technical Details | Magento 2 Developer Documentation](https://r-martins.github.io/m1docs/guides/v2.4/config-guide/deployment/pipeline/technical-details.html)
+[Technical details | Adobe Commerce](https://experienceleague.adobe.com/en/docs/commerce-operations/configuration-guide/deployment/technical-details)
 
 ### 5.1. Magento Environment Mode Setup (Production, Development, Build)
 
@@ -462,7 +464,7 @@ flowchart TD
 
 ### 5.3. File systems access permissions
 
-[File systems access permissions | Magento 2 Developer Documentation](https://r-martins.github.io/m1docs/guides/v2.4/config-guide/prod/prod_file-sys-perms.html)
+[File systems access permissions | Adobe Commerce](https://experienceleague.adobe.com/en/docs/commerce-operations/configuration-guide/deployment/file-system-permissions)
 
 > [!TIP]
 > Tìm hiểu setup configuration của FPM
@@ -484,26 +486,26 @@ Các loại cache trong Magento
 - config_integration
 - config_integration_api
 - full_page
-- graphql_query_resolver_results
+- graphql_query_resolver_result
 - config_webservice
 - translate
 
 ### 5.5. Configure Redis
 
-[Use Redis for the Magento page and default cache](https://r-martins.github.io/m1docs/guides/v2.4/config-guide/redis/redis-pg-cache.html)
+[Configure Redis for Default and Page Cache | Adobe Commerce](https://experienceleague.adobe.com/en/docs/commerce-operations/configuration-guide/cache/redis/redis-pg-cache)
 
-[Use Redis for session storage | Magento 2 Developer Documentation](https://r-martins.github.io/m1docs/guides/v2.4/config-guide/redis/redis-session.html)
+[Configure Redis for Session Storage | Adobe Commerce](https://experienceleague.adobe.com/en/docs/commerce-operations/configuration-guide/cache/redis/redis-session)
 
 ### 5.6. Configure and use Varnish
 
-[Configure and use Varnish | Magento 2 Developer Documentation](https://r-martins.github.io/m1docs/guides/v2.4/config-guide/varnish/config-varnish.html)
+[Configure and use Varnish | Adobe Commerce](https://experienceleague.adobe.com/en/docs/commerce-operations/configuration-guide/cache/varnish/config-varnish)
 
 ![Varnish Cache đứng giữa Client và Web Server: request từ client được Varnish trả về từ cache, chỉ uncached request mới chuyển tới Web Server](images/magento-architecture-kien-truc-tong-quan-cua-adobe-commerce/image-09.png)
 
 *Hình 12: Varnish Cache làm reverse proxy giữa Client và Web Server*
 
 So sánh varnish với một số giải pháp page cache trực tiếp trên Magento, và các dịch vụ saas trong cloud.
-Sự khác biệt lớn nhất Varnish sẽ cache lại data html dựa trên router, varnish sẽ ko cần phải thực hiện các bước matching, tìm kiếm router, load config … trong base magento.
+Sự khác biệt lớn nhất Varnish sẽ cache lại data html dựa trên router, varnish sẽ không cần phải thực hiện các bước matching, tìm kiếm router, load config … trong base magento.
 
 Các phương pháp trên M2 server thì vẫn phải thực hiện thông matching url, get configuration.
 
@@ -537,19 +539,29 @@ A Monolog logger is a channel that has its own set of handlers. Monolog has a la
 - Log to the database
 
 > [!TIP]
-> Không nên viết riêng file customize cho logger handle, chỉ cần setting bằng virtualType, object sử dụng logger thì nên viết ntn để nếu ko muốn customize file log thì Magento sẽ chọn file default.
+> Không nên viết riêng file customize cho logger handle, chỉ cần setting bằng virtualType, object sử dụng logger thì nên viết như thế này để nếu không muốn customize file log thì Magento sẽ chọn file default.
 
 **Ví dụ:** inject logger qua constructor
 
 ```php
-/**
- * @param PsrLoggerInterface $logger
- */
-public function __construct(
-    ….
-    PsrLoggerInterface $logger
-) {
-    $this->logger = $logger;
+use Psr\Log\LoggerInterface as PsrLoggerInterface;
+
+class Example
+{
+    /**
+     * @var PsrLoggerInterface
+     */
+    private PsrLoggerInterface $logger;
+
+    /**
+     * @param PsrLoggerInterface $logger
+     */
+    public function __construct(
+        // ...other dependencies
+        PsrLoggerInterface $logger
+    ) {
+        $this->logger = $logger;
+    }
 }
 ```
 
@@ -586,7 +598,7 @@ M2 Terraform: [magenx/Magento-2-aws-cluster-terraform](https://github.com/magenx
 
 **Bài viết khác**
 - [The Twelve-Factor App](https://12factor.net/)
-- [Technical Details | Magento 2 Developer Documentation](https://r-martins.github.io/m1docs/guides/v2.4/config-guide/deployment/pipeline/technical-details.html)
+- [Technical details | Adobe Commerce](https://experienceleague.adobe.com/en/docs/commerce-operations/configuration-guide/deployment/technical-details)
 - [magenx/Magento-2-aws-cluster-terraform](https://github.com/magenx/Magento-2-aws-cluster-terraform)
 
 **Bài liên quan trong Knowledge Base**

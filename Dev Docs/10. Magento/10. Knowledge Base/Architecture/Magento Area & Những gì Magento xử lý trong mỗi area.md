@@ -5,7 +5,7 @@ scope: backend
 status: current
 author: magento-team@
 owner: magento-team@
-updated: 2026-10-20
+updated: 2026-10-29
 tags: [area, architecture, routing]
 ---
 
@@ -13,7 +13,7 @@ tags: [area, architecture, routing]
 
 > **Techstack:** Magento 2.4.x (Adobe Commerce / Magento Open Source)
 
-Magento tổ chức application thành nhiều phân vùng area, mỗi phân vùng sẽ đc xử lý tối ưu hóa và cho từng thành phần, request, url riêng biệt.
+Magento tổ chức application thành nhiều phân vùng area, mỗi phân vùng sẽ được xử lý tối ưu hóa và cho từng thành phần, request, url riêng biệt.
 
 ## 1. Tổng quan
 
@@ -21,7 +21,7 @@ Mỗi phân vùng sẽ có load configs, code khác nhau
 
 - Admin (`adminhtml`): entry point cho phân vùng này tại `pub/index.php`. The Admin panel area includes the code needed for store management. The `/app/design/adminhtml` directory contains all the code for components you'll see while working in the Admin.
 - Storefront (`frontend`): entry point for this area is `pub/index.php`. The storefront (or frontend) contains template and layout files that define the appearance of your storefront.
-- Basic (`base`): used as a fallback for files absent in adminhtml and frontend areas. entry point cho phân vùng này tại `pub/get.php`
+- Basic (`base`): used as a fallback for files absent in adminhtml and frontend areas. Đây chỉ là area fallback cho các file view (template, layout, web), không phải runtime area và không có entry point.
 - Cron (`crontab`): In `pub/cron.php`, the `\Magento\Framework\App\Cron` class always loads the `'crontab'` area.
 - Web API REST (`webapi_rest`): entry point for this area is `pub/index.php`. The REST area has a front controller that understands how to do URL lookups for REST-based URLs
 - GraphQL (`graphql`): entry point for this area is `pub/index.php`.
@@ -64,22 +64,16 @@ flowchart TD
 
 *Hình 1: `Magento\Framework\App\Area::load()` và `_loadPart()` – mỗi part (config, design, translate) chỉ được load một lần cho mỗi area*
 
-Mỗi area sẽ thực hiện load config DI trong metadata:
+Mỗi area sẽ thực hiện load config DI cho ObjectManager. Tùy Environment mode mà dùng loader khác nhau:
 
-Mỗi phân vùng sẽ ObjectManager sẽ thực hiện load class trong `DiConfig`
-
-được thực hiện tại: `Magento\Framework\App\ObjectManager\ConfigLoader::load($area)`
+- mode=Developer: `Magento\Framework\App\ObjectManager\Environment\Developer` (`getObjectManagerConfigLoader()` trả `null`) → dùng `Magento\Framework\App\ObjectManager\ConfigLoader::load($area)`: đọc các file `di.xml` của area rồi cache lại với key
 
 ```php
+// Magento\Framework\App\ObjectManager\ConfigLoader::load()
 $cacheId = $area . '::DiConfig';
 ```
 
-metadata path: `generated/metadata/$area.php`
-
-Chúng ta sẽ có 2 kiểu Environment mode khi load config metadata:
-
-- mode=Compiled: `Magento\Framework\App\ObjectManager\Environment\Compiled`
-- mode=Developer: `Magento\Framework\App\ObjectManager\Environment\Developer`
+- mode=Compiled: `Magento\Framework\App\ObjectManager\Environment\Compiled` → dùng `Magento\Framework\App\ObjectManager\ConfigLoader\Compiled::load($area)`: đọc thẳng file metadata `generated/metadata/$area.php` (sinh ra bởi `setup:di:compile`)
 
 ## 2. Area frontName
 
@@ -98,12 +92,12 @@ Chúng ta sẽ có 2 kiểu Environment mode khi load config metadata:
 </type>
 ```
 
-Mồi area thường sẽ có một frontName: \<là các area sử dụng HTTP\>
+Mỗi area thường sẽ có một frontName: \<là các area sử dụng HTTP\>
 
 - `webapi_rest`: `rest`
 - `webapi_soap`: `soap`
-- `webapi_graphql`: `graphql`
-- `adminhtml`: `admin`
+- `graphql`: `graphql`
+- `adminhtml`: frontName động, do `Magento\Backend\App\Area\FrontNameResolver` resolve từ `backend/frontName` trong `app/etc/env.php` (vd. `admin`) hoặc config `admin/url/custom_path`
 - …
 
 Khi launch application `Magento\Framework\App\Http`
@@ -120,7 +114,7 @@ public function launch()
 }
 ```
 
-sẽ thực hiện load `App/State` (mode developer, production, default), và load config cho ObjectManager
+sẽ set area code vào `App\State` (mode developer/production/default đã được xác định từ lúc bootstrap), sau đó nạp DI config của area cho ObjectManager
 
 sau đó sẽ thực hiện xử lý `\Magento\Framework\App\FrontControllerInterface` trên mỗi area.
 
@@ -140,10 +134,12 @@ flowchart TD
 
 *Hình 2: Xác định area từ frontName của request và load DI config tương ứng trong `Http::launch()`*
 
-Với Cron area, magento sẽ thực hiện `Magento\Framework\Event\ManagerInterface`
+Với Cron area, `Magento\Framework\App\Cron::launch()` set area `crontab`, load DI config và translate của area, rồi dispatch event `default` qua `Magento\Framework\Event\ManagerInterface` (observer `Magento\Cron\Observer\ProcessCronQueueObserver` khai báo trong `Magento/Cron/etc/crontab/events.xml` sẽ chạy các cron job).
 
-- Media (`Magento\MediaStorage\App\Media`),
-- Static (`Magento\Framework\App\StaticResource`)
+Ngoài `Http` và `Cron` còn các application (`AppInterface`) khác không gắn với area HTTP:
+
+- Media (`Magento\MediaStorage\App\Media`), entry point `pub/get.php`
+- Static (`Magento\Framework\App\StaticResource`), entry point `pub/static.php`
 
 ## 3. FrontControllerInterface
 
@@ -156,7 +152,7 @@ sẽ thực hiện các dispatch của application là http request:
 - Controller: `Magento\Framework\App\FrontController`
 - Rest: `Magento\Webapi\Controller\Rest`
 - Soap: `Magento\Webapi\Controller\Soap`
-- Graphql: `Magento\GraphQl\Controller\Graphql`
+- Graphql: `Magento\GraphQl\Controller\GraphQl`
 
 Về cơ bản khi thực hiện HTTP Request sẽ bao gồm:
 

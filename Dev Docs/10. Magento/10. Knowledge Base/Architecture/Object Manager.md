@@ -5,7 +5,7 @@ scope: backend
 status: current
 author: magento-team@
 owner: magento-team@
-updated: 2026-10-20
+updated: 2026-10-29
 tags: [object-manager, di, factory, proxy]
 ---
 
@@ -13,7 +13,7 @@ tags: [object-manager, di, factory, proxy]
 
 > **Techstack:** Magento 2.4.x (Adobe Commerce / Magento Open Source)
 
-Trong magento, ObjectManager giúp điều hướng quá trình khởi tạo object (tạo một singleton object, tạo object với DI inject, tạo new object …)
+Trong Magento, ObjectManager giúp điều hướng quá trình khởi tạo object (tạo một singleton object, tạo object với DI inject, tạo new object …)
 
 ## 1. Tổng quan
 
@@ -32,13 +32,13 @@ Khi application được khởi tạo dựa trên area & state thì bootstrap s�
 
 => global ObjectManager
 
-Sau đó, tùy thuộc từng loại mỗi loại ứng dụng, mode, area thì DI sẽ được load thêm các config DI thông qua `$configLoader, $state, $areaCode` : `Magento\Framework\ObjectManager\ConfigLoaderInterface`
+Sau đó, tùy thuộc vào từng loại ứng dụng, mode, area thì DI sẽ được load thêm các config DI thông qua `$configLoader, $state, $areaCode` : `Magento\Framework\ObjectManager\ConfigLoaderInterface`
 
 ```php
-/** Magento\Framework\App\Http:launch() **/
+/** Magento\Framework\App\Http::launch() **/
 $this->_objectManager->configure($this->_configLoader->load($areaCode));
 // or
-/** Magento\Framework\App\Cron:launch() **/
+/** Magento\Framework\App\Cron::launch() **/
 $this->objectManager->configure($configLoader->load(Area::AREA_CRONTAB));
 ```
 
@@ -82,7 +82,7 @@ flowchart TD
 
 Metadata `generated/metadata/interception.php`
 
-bên trong interception metadata là các object đc khai báo có plugin
+bên trong interception metadata là các object được khai báo có plugin
 
 **Ví dụ:**
 
@@ -110,11 +110,14 @@ và bên trong metadata plugin `primary|global|plugin-list.php`:
 // Method, và kiểu plugin
 'Magento\\Store\\Model\\Store_save___self' =>
   array (
-    2 => 'themeDesignConfigGridIndexerStore',
+    4 =>
+      array (
+        0 => 'themeDesignConfigGridIndexerStore',
+      ),
   ),
 ```
 
-`2` là type định nghĩa kiểu của plugin method.
+`4` (`LISTENER_AFTER`) là type định nghĩa kiểu của plugin method. Plugin before/after được lưu dạng mảng tên plugin, còn around chỉ lưu một tên (plugin around kế tiếp trong chuỗi) – xem `Magento\Framework\Interception\PluginListGenerator`.
 
 **Source:** `Magento\Framework\Interception\DefinitionInterface`
 
@@ -129,7 +132,7 @@ vậy nhìn vào đây chúng ta sẽ biết:
 
 với method `Magento\Store\Model\Store::save()`
 
-được khai báo plugin là một around plugin với name là `'themeDesignConfigGridIndexerStore'` và là một instance của `Magento\Theme\Model\Indexer\Design\Config\Plugin\Store`
+được khai báo plugin là một **after** plugin (`afterSave`) với name là `'themeDesignConfigGridIndexerStore'` và là một instance của `Magento\Theme\Model\Indexer\Design\Config\Plugin\Store`
 
 ## 4. Tạo mới một instance
 
@@ -195,7 +198,7 @@ Xem thêm: DIConfig:
 
 ## 6. Autoloader
 
-Magento đã custom một code generators, để xử lý load Class Generator bên trong ObjectManagerFactory
+Magento đã custom một code generator để xử lý load Class Generator bên trong ObjectManagerFactory
 
 ![Sơ đồ đăng ký Autoloader: index.php → Bootstrap::create() → ObjectManagerFactory->create() → DefinitionFactory->createClassDefinition() → spl_autoload_register; nếu class chưa tồn tại thì được generate rồi autoload](images/object-manager/image-01.png)
 
@@ -219,32 +222,39 @@ public function createClassDefinition()
 }
 ```
 
-Các kiểu Generator Code: `Magento\Framework\Code\Generator`
+Các kiểu Generator Code được khai báo qua argument `generatedEntities` của `Magento\Framework\Code\Generator` trong `app/etc/di.xml`:
 
-```text
-extensionInterfaceFactory => \Magento\Framework\Api\Code\Generator\ExtensionAttributesInterfaceFactoryGenerator
-factory => \Magento\Framework\ObjectManager\Code\Generator\Factory
-proxy => \Magento\Framework\ObjectManager\Code\Generator\Proxy
-interceptor => \Magento\Framework\Interception\Code\Generator\Interceptor
-logger => \Magento\Framework\ObjectManager\Profiler\Code\Generator\Logger
-mapper => \Magento\Framework\Api\Code\Generator\Mapper
-persistor => \Magento\Framework\ObjectManager\Code\Generator\Persistor
-repository => \Magento\Framework\ObjectManager\Code\Generator\Repository
-convertor => \Magento\Framework\ObjectManager\Code\Generator\Converter
-searchResults => \Magento\Framework\Api\Code\Generator\SearchResults
-extensionInterface => \Magento\Framework\Api\Code\Generator\ExtensionAttributesInterfaceGenerator
-extension => \Magento\Framework\Api\Code\Generator\ExtensionAttributesGenerator
-remote => \Magento\Framework\MessageQueue\Code\Generator\RemoteServiceGenerator
-proxyDeferred => \Magento\Framework\Async\Code\Generator\ProxyDeferredGenerator
+```xml
+<!-- app/etc/di.xml -->
+<type name="Magento\Framework\Code\Generator">
+    <arguments>
+        <argument name="generatedEntities" xsi:type="array">
+            <item name="extensionInterfaceFactory" xsi:type="string">\Magento\Framework\Api\Code\Generator\ExtensionAttributesInterfaceFactoryGenerator</item>
+            <item name="factory" xsi:type="string">\Magento\Framework\ObjectManager\Code\Generator\Factory</item>
+            <item name="proxy" xsi:type="string">\Magento\Framework\ObjectManager\Code\Generator\Proxy</item>
+            <item name="interceptor" xsi:type="string">\Magento\Framework\Interception\Code\Generator\Interceptor</item>
+            <item name="logger" xsi:type="string">\Magento\Framework\ObjectManager\Profiler\Code\Generator\Logger</item>
+            <item name="mapper" xsi:type="string">\Magento\Framework\Api\Code\Generator\Mapper</item>
+            <item name="persistor" xsi:type="string">\Magento\Framework\ObjectManager\Code\Generator\Persistor</item>
+            <item name="repository" xsi:type="string">\Magento\Framework\ObjectManager\Code\Generator\Repository</item>
+            <item name="convertor" xsi:type="string">\Magento\Framework\ObjectManager\Code\Generator\Converter</item>
+            <item name="searchResults" xsi:type="string">\Magento\Framework\Api\Code\Generator\SearchResults</item>
+            <item name="extensionInterface" xsi:type="string">\Magento\Framework\Api\Code\Generator\ExtensionAttributesInterfaceGenerator</item>
+            <item name="extension" xsi:type="string">\Magento\Framework\Api\Code\Generator\ExtensionAttributesGenerator</item>
+            <item name="remote" xsi:type="string">\Magento\Framework\MessageQueue\Code\Generator\RemoteServiceGenerator</item>
+            <item name="proxyDeferred" xsi:type="string">\Magento\Framework\Async\Code\Generator\ProxyDeferredGenerator</item>
+        </argument>
+    </arguments>
+</type>
 ```
 
 Application sẽ được tạo dựa trên area & state
 
 Đầu tiên bootstrap sẽ khởi tạo một global `ObjectManager` để có thể thực hiện load DI default cho các loại ứng dụng Http, Cron, Static, Media ….
 
-Sau đó, tùy thuộc từng loại mỗi loại ứng dụng, mode, area thì DI sẽ được load thêm các config DI thông qua `$configLoader, $state, $areaCode` : `Magento\Framework\ObjectManager\ConfigLoaderInterface`
+Sau đó, tùy thuộc vào từng loại ứng dụng, mode, area thì DI sẽ được load thêm các config DI thông qua `$configLoader, $state, $areaCode` : `Magento\Framework\ObjectManager\ConfigLoaderInterface`
 
-Chúng ta có thể thấy trong `Magento\Framework\App\Http:launch()`
+Chúng ta có thể thấy trong `Magento\Framework\App\Http::launch()`
 
 **Source:** `Magento\Framework\App\Http::launch()`
 
@@ -279,7 +289,7 @@ Bên trong bootstrap chúng ta sẽ thấy, bootstrap sẽ sử dụng một Obj
 $this->objectManager = $this->factory->create($this->server);
 ```
 
-ObjectManagerFactory sẽ khởi tạo một global ObjectManage được inject các config, server data chúng ta có thể xem func:
+ObjectManagerFactory sẽ khởi tạo một global ObjectManager được inject các config, server data, chúng ta có thể xem hàm:
 
 **Source:** `Magento\Framework\App\Bootstrap::createObjectManagerFactory()`
 
@@ -303,7 +313,7 @@ public static function createObjectManagerFactory($rootDir, array $initParams)
 Chúng ta sẽ thấy các config global sẽ được thiết lập sẵn để khởi tạo ObjectManager
 
 ```php
-Magento\Framework\App\ObjectManagerFactory::create((array $arguments)
+Magento\Framework\App\ObjectManagerFactory::create(array $arguments)
 ```
 
 - definition
@@ -314,7 +324,7 @@ Magento\Framework\App\ObjectManagerFactory::create((array $arguments)
 - sharedInstances
 - …
 
-Sau khi, ObjectManager được khởi tạo với mỗi area, state thì OM sẽ được set configure với:
+Sau khi ObjectManager được khởi tạo với mỗi area, state thì OM sẽ được set configure với:
 
 ```php
 /**
@@ -342,6 +352,16 @@ You can configure dependencies in Adobe Commerce and Magento Open Source to have
 
 - Singleton (default) - One instance of this class exists. The object manager creates it at the first request. Requesting the class again returns the same instance. Disposing or ending the container registered to it releases the instance.
 - Transient - The object manager creates a new instance of the class for every request.
+
+Lifestyle được cấu hình bằng attribute `shared` trong `di.xml`: `shared="false"` trên `<type>` hoặc `<argument xsi:type="object">` sẽ là Transient; bỏ trống hoặc `shared="true"` là Singleton ([Dependency Injection Configuration](https://developer.adobe.com/commerce/php/development/build/dependency-injection-file)).
+
+```xml
+<!-- app/etc/di.xml -->
+<type name="Magento\Framework\Acl" shared="false" />
+```
+
+> [!NOTE]
+> `shared` chỉ ảnh hưởng tới `ObjectManager::get()` và constructor injection. `ObjectManager::create()` luôn tạo instance mới, bất kể `shared`.
 
 ## Tham khảo
 

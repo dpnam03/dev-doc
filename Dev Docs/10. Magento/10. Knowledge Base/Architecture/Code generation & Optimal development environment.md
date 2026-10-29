@@ -5,7 +5,7 @@ scope: backend
 status: current
 author: magento-team@
 owner: magento-team@
-updated: 2026-10-20
+updated: 2026-10-29
 tags: [code-generation, di-compile, dev-environment, deploy-mode]
 ---
 
@@ -67,9 +67,9 @@ Proxy generator sẽ scan tất cả các file di.xml trong project sau đấy t
 Chúng ta có thể xem lại đoạn code:
 
 ```php
-// Magento\Setup\Module\Di\Code\Scanner\XmlScanner::collectEntities()
+// Magento\Setup\Module\Di\Code\Scanner\XmlScanner::scanProxies() (gọi từ collectEntities())
 
-$regex = '/^(.*)\\\(.*)Proxy$/';
+$regex = '/^(\s+)?(.*)\\\(.*)Proxy(\s+)?$/';
 $query = "/config/preference[ php:functionString('preg_match', '{$regex}', @type) > 0]/@type | " .
     "//argument[@xsi:type='object' and php:functionString('preg_match', '{$regex}', text()) > 0] |" .
     "//item[@xsi:type='object' and php:functionString('preg_match', '{$regex}', text()) > 0] |" .
@@ -79,14 +79,17 @@ $query = "/config/preference[ php:functionString('preg_match', '{$regex}', @type
 Vậy những config sau sẽ được generator
 
 ```xml
-<preference for="Magento\Framework\App\RequestInterface" type="Magento\Framework\App\Request\Http\Proxy" />
+<!-- app/etc/di.xml -->
+<preference for="Magento\Framework\Event\ManagerInterface" type="Magento\Framework\Event\Manager\Proxy" />
 <!-- or —---- -->
+<!-- Magento/Backend/etc/di.xml -->
 <type name="Magento\Backend\Model\Widget\Grid\Row\UrlGenerator">
     <arguments>
         <argument name="backendUrl" xsi:type="object">Magento\Backend\Model\UrlInterface\Proxy</argument>
     </arguments>
 </type>
 <!-- or —---- -->
+<!-- Magento/Directory/etc/di.xml -->
 <virtualType name="DirectoryHelperDataProxy" type="Magento\Directory\Helper\Data\Proxy">
     <arguments>
         <argument name="instanceName" xsi:type="string">Magento\Directory\Helper\Data</argument>
@@ -145,21 +148,37 @@ sequenceDiagram
 
 `Magento\Framework\ObjectManager\Code\Generator\Proxy`
 
-Trong này sẽ định nghĩa template của file, class, methods …. sẽ đc generate
+Trong này sẽ định nghĩa template của file, class, methods …. sẽ được generate
 
 Kết quả:
 
-```text
-/**
- * Clone proxied instance
- */
-path: code/{subjectPath}/Proxy.php
-=> class: \{subjectClass}\Proxy extends \{subjectClass}
+File được sinh ra ở `generated/code/{subjectPath}/Proxy.php`. Subject là class thì Proxy `extends` class đó, subject là interface thì Proxy `implements` interface đó; cả hai đều implement thêm `NoninterceptableInterface` (`Proxy::_generateCode()`):
+
+```php
+<?php
+// generated/code/Magento/Framework/Event/Manager/Proxy.php (subject là class)
+namespace Magento\Framework\Event\Manager;
+
+class Proxy extends \Magento\Framework\Event\Manager implements \Magento\Framework\ObjectManager\NoninterceptableInterface
+{
+    // ...
+}
+```
+
+```php
+<?php
+// generated/code/Magento/Store/Model/StoreManagerInterface/Proxy.php (subject là interface)
+namespace Magento\Store\Model\StoreManagerInterface;
+
+class Proxy implements \Magento\Store\Model\StoreManagerInterface, \Magento\Framework\ObjectManager\NoninterceptableInterface
+{
+    // ...
+}
 ```
 
 Vậy Proxy là gì? Tại sao Magento lại generate các class này:
 
-Proxy của Magento được xây dựng trên proxy pattern, về cơ bản Proxy giống như một đại diện của class chính đc ủy quyền trước khi logic chính của class được khởi tạo (các logic này thường được thực hiện chậm or phụ thuộc vào nhiều service khác).
+Proxy của Magento được xây dựng trên proxy pattern, về cơ bản Proxy giống như một đại diện của class chính được ủy quyền trước khi logic chính của class được khởi tạo (các logic này thường được thực hiện chậm or phụ thuộc vào nhiều service khác).
 Thay vì chờ tất cả các hành động của logic chính được khởi tạo hoàn thành, thì lớp ủy quyền (Proxy) sẽ được tạo ra các khai báo, khi cần sử dụng thì object chính sẽ tạo ra.
 
 Ưu điểm:
@@ -174,21 +193,19 @@ Chúng ta có thể tham khảo thêm về proxy pattern tại [Proxy](https://r
 
 Tương tự như `Proxy Generator` thì hành động này cũng là một code generator
 
-Với action này đã `@deprecated` Magento hiện chỉ dùng action cho codebase của họ.
+Generator `Magento\Framework\ObjectManager\Code\Generator\Repository` đã `@deprecated 101.0.0` ("current implementation breaks Repository contract"), chỉ còn giữ lại để tương thích ngược với code bên thứ ba.
 
 - `Magento\Setup\Module\Di\App\Task\Operation\RepositoryGenerator`
 - `Magento\Setup\Module\Di\Code\Scanner\RepositoryScanner`
 - `Magento\Framework\ObjectManager\Code\Generator\Repository`
 
-Sẽ generator một vài kiểu class cho `RepositoryInterface`
+Tìm trong thẻ `<preference>` của `di.xml` có `for` kết thúc bằng `RepositoryInterface`; chỉ khi class trong `type` **chưa tồn tại** thì mới generate class Repository đó cùng:
 
 - InterfacePersistor
 - InterfaceFactory
 - SearchResultInterfaceFactory
 
-Tìm trong thẻ `<preference>` của `di.xml` cho type implement `RepositoryInterface`
-
-Hầu hết các repository hiện tại của base cũng đã đc replace thành các class đc khởi tạo bên trong module
+Hầu hết các repository hiện tại của base cũng đã được replace thành các class được khởi tạo bên trong module
 
 ### 1.4. Extension Attributes Generator
 
@@ -251,10 +268,10 @@ public function setPaymentAdditionalInfo($paymentAdditionalInfo)
 
 Thay vì scan xml di, application code sẽ scan php files
 
-PHP scan sẽ sử dụng reflection để tìm trong hàm `__construct`:
+PHP scan sẽ sử dụng reflection để tìm:
 
-- Missing Factories classes
-- Missing Extension attributes classes
+- Missing Factories classes: tham số của `__construct` có type kết thúc bằng `Factory` mà class chưa tồn tại
+- Missing Extension attributes classes: với interface có `getExtensionAttributes()`, đọc return type để sinh `XxxExtensionInterface`, `XxxExtension`, `XxxExtensionFactory`
 
 ```php
 // Magento\Setup\Module\Di\Code\Scanner\PhpScanner::collectEntities
@@ -278,10 +295,10 @@ Factory là một design pattern (Creational Patterns) được sử dụng đ�
 khi sử dụng toán tử `new` sẽ có những vấn đề sau:
 
 - Khó thể xác định chính xác các parameter
-- Rất nhiều config đc thiết lập tương tự nhau
+- Rất nhiều config được thiết lập tương tự nhau
 - Performance
 
-Factory sẽ tạo trước các config, các lớp cần thiết sẽ được khởi tạo trước và 1 lần để sử dụng lại .
+Factory không tạo sẵn object: mỗi lần gọi `create()`, ObjectManager tạo **một instance mới** (non-shared) và tự resolve các dependency của constructor theo DI config. Class inject Factory thay vì dùng `new`, nên không phụ thuộc trực tiếp vào ObjectManager.
 
 trong trường hợp này, ClassFactory sẽ khởi tạo các lớp cần thiết thông qua `object_manager`
 
@@ -392,7 +409,7 @@ class Interceptor extends \Magento\Sales\Model\Order implements \Magento\Framewo
 }
 ```
 
-Chúng sẽ tìm hiểu chi tiết về cách thức hoạt động và tác dụng của interceptor plugin
+Chúng ta sẽ tìm hiểu chi tiết về cách thức hoạt động và tác dụng của interceptor plugin
 
 ### 1.7. Area configuration aggregation
 
@@ -405,6 +422,7 @@ metadata files: `generated/metadata`
 - `global.php`
 - `frontend.php`
 - `adminhtml.php`
+- `crontab.php`
 - `webapi_soap.php`
 - `webapi_rest.php`
 - `graphql.php`
@@ -414,7 +432,7 @@ metadata files: `generated/metadata`
 Bước này sẽ tạo ra file:
 `generated/metadata/interception.php`
 
-Tất cả các class có áp dụng Plugin sẽ đc set trong này, cải thiện performance để check class có thực hiện plugin khi sử dụng ko?
+Tất cả các class có áp dụng Plugin sẽ được set trong này, cải thiện performance để check class có thực hiện plugin khi sử dụng không?
 
 ### 1.9. Pregenerates actions for Magento
 
@@ -456,7 +474,7 @@ Hành động này sẽ generate class configs cho plugin-list trong:
 
 - Enable Developer mode
 - To speed up frontend development, turn off merging of CSS and JavaScript.
-- Make sure caching is turned on, only turn of `page_cache, block_html`
+- Make sure caching is turned on, only turn off `page_cache, block_html`
 - install and enable PHP OPcache
 
 BSS Docker: [Docker và ứng dụng để build môi trường chạy site magento](https://docs.google.com/document/d/1KLqLoKnM7RbItqMBPwp5zuuY6_nQG0ibWpKnOpCSYm4)
@@ -484,7 +502,7 @@ bin/magento dev:profiler:enable html
 > $elements = $this->getXml()->xpath('//' . Element::TYPE_BLOCK . '[@cacheable="false"]');
 > ```
 >
-> Bất kỳ element nào set `cacheable='false'` thì toàn bộ layout sẽ disable cache
+> Chỉ cần một `<block cacheable="false">` có mặt trong layout là cả trang đó bị loại khỏi Full Page Cache
 
 ### 6.2. Configure the database profiler
 
@@ -513,15 +531,12 @@ bin/magento dev:profiler:enable html
 php bin/magento dev:query-log:enable
 ```
 
-log sẽ thấy trong `/var/debug/db.log`
+log sẽ thấy trong `<magento_root>/var/debug/db.log`
 
 #### Select the database
 
-```sql
-use magento_database;
-SET GLOBAL slow_query_log = 'ON';
-SET GLOBAL long_query_time = X;
-show variables like '%slow%';
+```bash
+mysql -u <db_user> -p magento_database -e "SET GLOBAL slow_query_log = 'ON'; SET GLOBAL long_query_time = <seconds>; SHOW VARIABLES LIKE '%slow%';"
 ```
 
 ![Kết quả lệnh show variables like '%slow%' trong MySQL: slow query log = ON, slow query log file = /var/lib/mysql/sagar232-slow.log, slow launch time = 2](images/code-generation-optimal-development-environment/image-03.png)

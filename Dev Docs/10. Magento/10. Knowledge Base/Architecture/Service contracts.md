@@ -5,7 +5,7 @@ scope: backend
 status: current
 author: magento-team@
 owner: magento-team@
-updated: 2026-10-20
+updated: 2026-10-29
 tags: [service-contract, api, repository, data-interface]
 ---
 
@@ -38,7 +38,7 @@ flowchart TD
 
 Vì sao Magento đưa ra service contracts:
 
-- **Backward compatibility (BC)**: interface đánh dấu `@api` được Adobe cam kết giữ ổn định giữa các bản minor/patch → extension ít vỡ khi upgrade.
+- **Backward compatibility (BC)**: interface đánh dấu `@api` được Adobe cam kết **không có thay đổi phá vỡ BC trong các bản patch (2.4.x)**; bản minor (VD 2.4 → 2.5) vẫn có thể có thay đổi cần thiết, kèm deprecation trước → extension ít vỡ khi upgrade.
 - **Ẩn chi tiết lưu trữ**: một entity có thể nằm trên nhiều bảng EAV, nhưng data interface chỉ phơi ra một model đơn giản.
 - **Expose Web API gần như miễn phí**: khai báo `webapi.xml` trỏ tới service interface là có REST + SOAP endpoint (xem [REST](API%20Rest%2C%20Soap%20%26%20Graphql/REST.md)).
 - **Thay thế implementation dễ dàng** qua `di.xml` `<preference>` (xem [Object Manager](Object%20Manager.md)).
@@ -49,20 +49,18 @@ Tham khảo: [Service contracts – Adobe Commerce PHP Developer Guide](https://
 
 ### 2.1. Cấu trúc thư mục
 
-```text
-Vendor/Module/
-├── Api/
-│   ├── Data/
-│   │   ├── BrandInterface.php                 # data interface
-│   │   └── BrandSearchResultsInterface.php    # search results
-│   ├── BrandRepositoryInterface.php           # repository
-│   └── BrandManagementInterface.php           # management (nghiệp vụ)
-├── Model/                                     # implementation (không phải API)
-└── etc/
-    ├── di.xml                                 # preference interface -> class
-    ├── webapi.xml                             # expose REST/SOAP
-    └── extension_attributes.xml               # mở rộng data interface của module khác
-```
+- `Vendor/Module/`
+  - `Api/`
+    - `Data/`
+      - `BrandInterface.php`: data interface
+      - `BrandSearchResultsInterface.php`: search results
+    - `BrandRepositoryInterface.php`: repository
+    - `BrandManagementInterface.php`: management (nghiệp vụ)
+  - `Model/`: implementation (không phải API)
+  - `etc/`
+    - `di.xml`: preference interface → class
+    - `webapi.xml`: expose REST/SOAP
+    - `extension_attributes.xml`: mở rộng data interface của module khác
 
 ### 2.2. Data interfaces
 
@@ -322,6 +320,8 @@ class BrandRepository implements BrandRepositoryInterface
 
 > [!NOTE]
 > `Model\Brand` extend `Magento\Framework\Model\AbstractModel` và implement `BrandInterface`; `BrandFactory` / `BrandSearchResultsInterfaceFactory` được Magento auto-generate.
+>
+> Vì `BrandInterface` khai báo native return type (`?int`, `string`) còn `getData()` trả về string từ DB (hoặc `null` với entity mới), implementation phải cast kiểu, VD `return $this->getData(self::BRAND_ID) === null ? null : (int)$this->getData(self::BRAND_ID);` và `return (string)$this->getData(self::NAME);` – nếu không, `strict_types` sẽ ném `TypeError`.
 
 **Ví dụ:** `preference` interface → implementation
 
@@ -333,8 +333,25 @@ class BrandRepository implements BrandRepositoryInterface
     <preference for="Vendor\Module\Api\Data\BrandInterface" type="Vendor\Module\Model\Brand"/>
     <preference for="Vendor\Module\Api\BrandRepositoryInterface" type="Vendor\Module\Model\BrandRepository"/>
     <preference for="Vendor\Module\Api\Data\BrandSearchResultsInterface"
-                type="Magento\Framework\Api\SearchResults"/>
+                type="Vendor\Module\Model\BrandSearchResults"/>
 </config>
+```
+
+`BrandSearchResultsInterfaceFactory::create()` chỉ gọi `ObjectManager::create()` và không kiểm tra kiểu, nên nếu preference thẳng sang `Magento\Framework\Api\SearchResults` (chỉ implement `SearchResultsInterface`) thì `getList(): BrandSearchResultsInterface` sẽ ném `TypeError`. Cần một class riêng, theo cách core làm (xem `Magento\Cms\Model\BlockSearchResults`):
+
+```php
+<?php
+// app/code/Vendor/Module/Model/BrandSearchResults.php
+declare(strict_types=1);
+
+namespace Vendor\Module\Model;
+
+use Magento\Framework\Api\SearchResults;
+use Vendor\Module\Api\Data\BrandSearchResultsInterface;
+
+class BrandSearchResults extends SearchResults implements BrandSearchResultsInterface
+{
+}
 ```
 
 **Ví dụ:** expose REST/SOAP qua `webapi.xml`
@@ -378,7 +395,8 @@ sequenceDiagram
     S-->>P: BrandInterface
     P->>O: process(outputData, serviceClass, method)
     O-->>P: array
-    P-->>Cl: JSON response
+    P->>P: response->prepareResponse(outputData)
+    R-->>Cl: JSON response (Rest\Response)
 ```
 
 *Hình 2: REST request gọi service contract – `SynchronousRequestProcessor` resolve input, gọi interface và serialize output*
