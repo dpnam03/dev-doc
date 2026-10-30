@@ -5,7 +5,7 @@ scope: backend
 status: current
 author: magento-team@
 owner: magento-team@
-updated: 2026-10-21
+updated: 2026-10-30
 tags: [database, version-control, snapshot, resource-model]
 ---
 
@@ -33,7 +33,7 @@ tags: [database, version-control, snapshot, resource-model]
 | `...\Db\VersionControl\Metadata` | Danh sách cột của main table (`describeTable`) |
 | `...\Db\VersionControl\RelationComposite` | Chạy lần lượt các `RelationInterface` rồi dispatch event `<event_prefix>_process_relation` |
 | `...\Db\VersionControl\RelationInterface` | `processRelation(AbstractModel $object)` – lưu entity con |
-| `Magento\Eav\Model\Entity\VersionControl\AbstractEntity` | Phiên bản cho EAV entity (customer, customer address); `Magento_Customer` inject Snapshot virtualType dùng `Magento\Eav\Model\Entity\VersionControl\Metadata` (cột entity table + EAV attribute) |
+| `Magento\Eav\Model\Entity\VersionControl\AbstractEntity` | Phiên bản cho EAV entity (customer, customer address); `Magento_Customer` inject Snapshot virtualType dùng `Magento\Eav\Model\Entity\VersionControl\Metadata` (cột entity table + EAV attribute); address dùng `CustomerAddressSnapshot` → `AddressSnapshot`, xem [Snapshot](Snapshot.md) |
 
 (`...` = `Magento\Framework\Model\ResourceModel`)
 
@@ -76,7 +76,7 @@ $this->eventManager->dispatch($object->getEventPrefix() . '_process_relation', [
 
 Ví dụ core: `Magento\Sales\Model\ResourceModel\Order\Relation` lưu items, payment, status histories, related objects và addresses của order. Được gắn bằng DI:
 
-**Source:** `app/code/Magento/Sales/etc/di.xml`
+**Source:** `app/code/Magento/Sales/etc/di.xml` (bản cài composer: `vendor/magento/module-sales/etc/di.xml`)
 
 ```xml
 <virtualType name="OrderRelationsComposite"
@@ -96,7 +96,7 @@ Ví dụ core: `Magento\Sales\Model\ResourceModel\Order\Relation` lưu items, pa
 
 ## 4. Lưu dữ liệu custom của order qua relation processor
 
-Thêm processor vào composite có sẵn (merge argument array, không thay thế). Core cũng làm đúng như vậy: `Magento_Tax` thêm item `applied_taxes` vào `OrderRelationsComposite`. Module cần `<sequence>` `Magento_Sales` trong `module.xml` để merge đúng thứ tự.
+Thêm processor vào composite có sẵn (merge argument array, không thay thế). Core cũng làm đúng như vậy: `Magento_Tax` thêm item `applied_taxes` vào `OrderRelationsComposite`. Nên khai báo `<sequence>` `Magento_Sales` trong `module.xml` để processor của bạn chạy **sau** processor `default` của core (merge argument vẫn hoạt động khi không có sequence, nhưng thứ tự chạy không đảm bảo).
 
 **Ví dụ:** thêm processor vào `OrderRelationsComposite`
 

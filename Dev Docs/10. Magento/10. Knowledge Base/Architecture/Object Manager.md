@@ -5,7 +5,7 @@ scope: backend
 status: current
 author: magento-team@
 owner: magento-team@
-updated: 2026-10-29
+updated: 2026-10-30
 tags: [object-manager, di, factory, proxy]
 ---
 
@@ -95,7 +95,7 @@ bên trong interception metadata là các object được khai báo có plugin
 
 thì trong interception metadata: `Magento\Store\Model\Store => true`
 
-và bên trong metadata plugin `primary|global|plugin-list.php`:
+và bên trong metadata plugin `primary|global|plugin-list.php` (file trả về mảng 3 phần `[pluginData, inherited, processed]`: hai phần đầu chứa danh sách plugin theo class, `processed` chứa map `<Class>_<method>___self` → loại listener):
 
 ```php
 // định nghĩa plugin name
@@ -361,7 +361,7 @@ Lifestyle được cấu hình bằng attribute `shared` trong `di.xml`: `shared
 ```
 
 > [!NOTE]
-> `shared` chỉ ảnh hưởng tới `ObjectManager::get()` và constructor injection. `ObjectManager::create()` luôn tạo instance mới, bất kể `shared`.
+> `shared` chỉ ảnh hưởng khi ObjectManager resolve dependency để inject (constructor/argument `xsi:type="object"`): `shared="false"` thì inject bằng `create()`. Gọi trực tiếp `ObjectManager::get()` luôn trả về shared instance, còn `ObjectManager::create()` luôn tạo instance mới, bất kể `shared`.
 
 ## Tham khảo
 

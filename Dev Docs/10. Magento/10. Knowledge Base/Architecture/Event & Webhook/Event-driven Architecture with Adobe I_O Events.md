@@ -5,7 +5,7 @@ scope: backend
 status: current
 author: magento-team@
 owner: magento-team@
-updated: 2026-10-22
+updated: 2026-10-30
 tags: [event, webhook, adobe-io-events, event-driven]
 ---
 
@@ -85,13 +85,13 @@ stage:
 
 ### 2.2. Workspace config & event provider
 
-1. Tạo project từ template **App Builder** trong **Adobe Developer Console** (tick *Include Runtime with each workspace*). Trong workspace: *Add service > API* → **I/O Management API** (hoặc I/O Events / Adobe I/O Events for Adobe Commerce), credential **OAuth Server-to-Server** (JWT đã deprecated từ eventing 1.2.0); sau đó *Add service > API* lần nữa → filter *Experience Cloud* → **Adobe I/O Events for Adobe Commerce**. Bấm *Download All* để tải file **workspace configuration** (`<workspace-name>.json`).
+1. Tạo project từ template **App Builder** trong **Adobe Developer Console** (tick *Include Runtime with each workspace*). Trong workspace: *Add service > API* → **I/O Management API** (hoặc I/O Events / Adobe I/O Events for Adobe Commerce), credential **OAuth Server-to-Server** (Adobe đã deprecate credential Service Account (JWT); eventing hỗ trợ OAuth S2S từ 1.2.0); sau đó *Add service > API* lần nữa → filter *Experience Cloud* → **Adobe I/O Events for Adobe Commerce**. Bấm *Download All* để tải file **workspace configuration** (`<workspace-name>.json`).
 2. Admin: **Stores > Settings > Configuration > Adobe Services > Adobe I/O Events > General configuration**
    - Dán nội dung workspace JSON vào *Adobe I/O Workspace Configuration*.
    - Nhập *Adobe I/O Event Provider Instance ID* (định danh instance Commerce; chỉ chữ, số, `-`, `_`).
    - Bấm **Save Config** (chưa lưu workspace + Instance ID thì không tạo được event provider).
 3. Tạo **event provider**: nút *Create Event Provider* (tự điền *Adobe I/O Event Provider ID*) hoặc CLI `events:create-event-provider` (copy ID trả về vào field *Adobe I/O Event Provider ID*).
-4. *Commerce Eventing*: `Enabled = Yes`, nhập *Merchant ID* + *Environment ID* → event có `source = "<merchant-id>.<environment-id>"`.
+4. *Commerce Eventing*: `Enabled = Yes`, nhập *Merchant ID* + *Environment ID* (chỉ chữ, số và `_`, không dùng `-`) → event có `source = "<merchant-id>.<environment-id>"`.
 5. *Send Test Event* để kiểm tra kết nối.
 
 Từ eventing 1.12.0 có thể đăng ký **thêm event provider** tại **System > Events > Event Providers** và chỉ định provider khi subscribe (`--providerId`). Provider phải được tạo trước trên Adobe I/O (bằng `aio` CLI hoặc Adobe I/O Events API); Commerce chỉ lưu *Provider ID* + *Instance ID* (workspace config tuỳ chọn).

@@ -5,7 +5,7 @@ scope: backend
 status: current
 author: magento-team@
 owner: magento-team@
-updated: 2026-10-21
+updated: 2026-10-30
 tags: [database, transaction, resource-model]
 ---
 
@@ -31,7 +31,7 @@ MySQL không hỗ trợ transaction lồng nhau thực sự (`START TRANSACTION`
 
 - `beginTransaction()`: chỉ gửi `BEGIN` khi level = 0, sau đó `++level`.
 - `commit()`: chỉ gửi `COMMIT` khi level = 1; các level trong chỉ giảm bộ đếm.
-- `rollBack()` ở level trong: **không rollback ngay**, chỉ đánh dấu `_isRolledBack = true`. Khi đó mọi `commit()` sau đó sẽ throw `Rolled back transaction has not been completed correctly.` – transaction ngoài **bắt buộc** phải `rollBack()`.
+- `rollBack()` ở level trong: **không rollback ngay**, chỉ đánh dấu `_isRolledBack = true`. Khi đó mọi `beginTransaction()`/`commit()` sau đó (kể cả `save()` của model khác) sẽ throw `Rolled back transaction has not been completed correctly.` – transaction ngoài **bắt buộc** phải `rollBack()`.
 - `rollBack()` ở level 1: gửi `ROLLBACK` thật.
 - Commit/rollback khi level = 0 → `Asymmetric transaction commit/rollback.`
 

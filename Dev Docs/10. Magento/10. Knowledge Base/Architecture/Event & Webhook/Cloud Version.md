@@ -5,7 +5,7 @@ scope: backend
 status: current
 author: magento-team@
 owner: magento-team@
-updated: 2026-10-22
+updated: 2026-10-30
 tags: [event, webhook, adobe-commerce-cloud, app-builder]
 ---
 
@@ -98,7 +98,7 @@ stage:
 
 SaaS: không có CLI/PHP. Xem webhook method được hỗ trợ ở Admin **System > Webhooks > Webhooks List** hoặc REST `GET /V1/webhooks/supportedList`; tạo/sửa subscription ở **System > Webhooks > Webhooks Subscriptions** hoặc REST `POST /V1/webhooks/subscribe` (`POST /V1/webhooks/unsubscribe`, `GET /V1/webhooks/list`). SaaS chỉ hỗ trợ một tập webhook method (muốn thêm phải mở support ticket); URL phải là full URL, không dùng `{env:...}`.
 
-PaaS (từ webhooks 1.5.0): Admin UI tạo webhook đã bị bỏ – chỉ cấu hình qua `webhooks.xml`.
+PaaS: Admin UI tạo webhook đã bị bỏ từ webhooks 1.5.0 – cấu hình qua `webhooks.xml`, hoặc (từ webhooks 1.13.0) qua REST `POST /V1/webhooks/subscribe` / `POST /V1/webhooks/unsubscribe`.
 
 ### 3.2. Tên webhook & hook type
 
@@ -144,6 +144,9 @@ Attribute `type` của `<method>` = `before` hoặc `after`: webhook chạy **tr
 </config>
 ```
 
+> [!NOTE]
+> `checkout_cart_product_add_before` chỉ được dispatch trong `Magento\Checkout\Model\Cart::addProduct()` (add-to-cart trên storefront Luma). GraphQL `addProductsToCart` và REST `/V1/carts/mine/items` gọi thẳng `Quote::addProduct()` nên không kích hoạt webhook này. Muốn chặn mọi kênh, dùng `observer.sales_quote_item_save_before` hoặc `observer.sales_quote_add_item` (xem use case *Product stock validation* của Adobe).
+
 Điểm chính:
 
 - Các `hook` trong cùng một `batch` chạy **song song**; các batch chạy tuần tự theo `order`.
@@ -151,7 +154,7 @@ Attribute `type` của `<method>` = `before` hoặc `after`: webhook chạy **tr
 - `timeout` (hard timeout, ms; mặc định `0` = không giới hạn; vượt → request bị abort + log) / `softTimeout` (ms, vượt chỉ ghi notice vào log), `ttl` (giây, cache response; `0` = không cache), `sslVerification` (mặc định `true`, chỉ tắt khi dev), `priority` (thứ tự merge kết quả các hook trong batch).
 - `fields`: chỉ gửi những field cần thiết (`name` = path gửi đi, `source` = path trong payload gốc).
 - `rules`: conditional webhook – chỉ gọi khi mọi rule đúng (operator như `equal`, `notEqual`, `regex`…).
-- `developerConsoleOauth`: Commerce tự sinh OAuth header cho App Builder action.
+- `developerConsoleOauth` (`clientId`/`clientSecret`/`orgId` của credential OAuth Server-to-Server; PaaS từ webhooks 1.13.0): Commerce tự lấy IMS token và gửi trong header `Authorization`.
 
 ### 3.4. Response của endpoint
 

@@ -5,7 +5,7 @@ scope: backend
 status: current
 author: magento-team@
 owner: magento-team@
-updated: 2026-10-28
+updated: 2026-10-30
 tags: [design-pattern, builder, creational]
 ---
 
@@ -15,7 +15,7 @@ tags: [design-pattern, builder, creational]
 
 ## 1. Định nghĩa
 
-Builder cũng là một mẫu design pattern được thiết kế để khởi tạo Object.
+Builder là một creational design pattern cho phép dựng object phức tạp **từng bước (step by step)**, tách code khởi tạo ra khỏi chính class đó và đưa vào một object riêng là builder. Cùng một quy trình build có thể tạo ra các biến thể (representation) khác nhau của sản phẩm.
 
 Builder được xây dựng bằng cách tổng hợp các thành phần thành một object phức tạp.
 
@@ -288,7 +288,7 @@ Các bước áp dụng Builder, đối chiếu với `SearchCriteriaBuilder`:
 Trong ví dụ trên, chúng ta dùng `SearchCriteriaBuilder`, thêm một bộ lọc theo tên sản phẩm, sắp xếp theo giá giảm dần (object `SortOrder` dựng bằng `SortOrderBuilder` – cũng là một builder), đặt kích thước trang là 10, và trang hiện tại là 1. Cuối cùng, phương thức `create()` trả về object `SearchCriteria` (implement `SearchCriteriaInterface`) và reset dữ liệu của builder, nên có thể dùng lại builder cho lần build tiếp theo.
 
 > [!NOTE]
-> `addSortOrder()` nhận **một object `SortOrder`**, không nhận `('price', 'DESC')`. Truyền 2 string sẽ không báo lỗi ngay (PHP bỏ qua tham số thừa) mà lưu chuỗi `'price'` vào `sort_orders`; đến khi `SearchCriteria\CollectionProcessor\SortingProcessor::applyOrders()` gọi `$sortOrder->getField()` trên string mới phát sinh `Error`. Adobe cũng khuyến nghị inject builder qua constructor thay vì gọi `ObjectManager` trực tiếp ([Object Manager](https://developer.adobe.com/commerce/php/development/components/object-manager)).
+> `addSortOrder()` nhận **một object `SortOrder`**, không nhận `('price', 'DESC')`. Truyền 2 string sẽ không báo lỗi ngay (PHP bỏ qua tham số thừa) mà lưu chuỗi `'price'` vào `sort_orders`; đến khi `SearchCriteria\CollectionProcessor\SortingProcessor::applyOrders()` gọi `$sortOrder->getField()` trên string mới phát sinh `Error`. Adobe cũng khuyến nghị inject builder qua constructor thay vì gọi `ObjectManager` trực tiếp ([Object Manager](https://developer.adobe.com/commerce/php/development/components/object-manager/)).
 
 ```mermaid
 classDiagram

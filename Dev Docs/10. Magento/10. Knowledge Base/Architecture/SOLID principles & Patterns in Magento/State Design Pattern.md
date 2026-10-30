@@ -5,7 +5,7 @@ scope: backend
 status: current
 author: magento-team@
 owner: magento-team@
-updated: 2026-10-28
+updated: 2026-10-30
 tags: [design-pattern, state, behavioral]
 ---
 
@@ -15,9 +15,7 @@ tags: [design-pattern, state, behavioral]
 
 ## 1. Định nghĩa
 
-State cũng là một mẫu behavioral design pattern.
-
-quan trọng trong lập trình hướng đối tượng. Nó cho phép một đối tượng thay đổi hành vi của nó khi trạng thái nội bộ của nó thay đổi. Nói cách khác, đối tượng sẽ "hành xử" khác nhau tùy thuộc vào "trạng thái" hiện tại của nó.
+State là một behavioral design pattern quan trọng trong lập trình hướng đối tượng. Nó cho phép một đối tượng thay đổi hành vi của nó khi trạng thái nội bộ của nó thay đổi. Nói cách khác, đối tượng sẽ "hành xử" khác nhau tùy thuộc vào "trạng thái" hiện tại của nó.
 
 ## 2. Tại sao cần mô hình State?
 
@@ -59,6 +57,9 @@ stateDiagram-v2
 ### Ví dụ PHP – State (Refactoring.Guru)
 
 Conceptual example của [Refactoring.Guru – State in PHP](https://refactoring.guru/design-patterns/state/php/example) (© Alexander Shvets, CC BY-NC-ND 4.0). `Context` ủy thác `request1()`/`request2()` cho state hiện tại; mỗi `ConcreteState` giữ back reference tới `Context` và tự gọi `transitionTo()` để chuyển sang state kế tiếp.
+
+> [!NOTE]
+> Magento core không implement State pattern theo đúng GoF cho order: trạng thái là hằng `Order::STATE_*` (`Magento\Sales\Model\Order`), hành vi theo trạng thái nằm trong if-else của `Order::canInvoice()` / `canCancel()` / `canHold()`, và trạng thái kế tiếp do `Magento\Sales\Model\Order\StateResolver` quyết định. Các class trong `Magento\Sales\Model\Order\Payment\State\` (`AuthorizeCommand`, `CaptureCommand`…) là Command pattern, không phải ConcreteState.
 
 ```php
 <?php
@@ -188,15 +189,13 @@ $context->request2();
 
 ### 7.1. Ưu điểm
 
-- **Tách biệt mối quan tâm:** Mỗi trạng thái có trách nhiệm riêng, giúp code dễ bảo trì và mở rộng.
-- **Linh hoạt:** Dễ dàng thêm các trạng thái mới mà không ảnh hưởng đến các trạng thái khác.
-- **Hiệu suất:** Có thể tối ưu hóa hiệu năng bằng cách sử dụng các kỹ thuật như flyweight pattern.
+- **SRP:** Tách code của từng trạng thái ra class riêng, giúp code dễ bảo trì và mở rộng.
+- **OCP:** Thêm state mới mà không phải sửa state cũ hay Context.
+- **Bớt điều kiện:** Loại bỏ chuỗi if-else/switch theo trạng thái trong Context.
 
 ### 7.2. Nhược điểm
 
 - **Overkill:** Áp dụng pattern có thể thừa nếu state machine chỉ có vài trạng thái hoặc hiếm khi thay đổi ([refactoring.guru – State](https://refactoring.guru/design-patterns/state#pros-cons)); mỗi trạng thái là một class nên số class tăng theo số trạng thái.
-- **Khó kiểm thử:** Việc kiểm thử các tương tác giữa các trạng thái có thể khó khăn.
-
 ## Tham khảo
 
 **Bài viết khác**

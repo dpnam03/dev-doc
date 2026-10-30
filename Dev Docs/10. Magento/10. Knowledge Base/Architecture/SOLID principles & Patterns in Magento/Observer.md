@@ -5,7 +5,7 @@ scope: backend
 status: current
 author: magento-team@
 owner: magento-team@
-updated: 2026-10-28
+updated: 2026-10-30
 tags: [design-pattern, observer, behavioral, event]
 ---
 
@@ -269,6 +269,9 @@ Thuộc tính `<observer>`:
 - `model_save_commit_after` / `{prefix}_save_commit_after` (sau khi transaction commit)
 - `{prefix}_load_before` / `{prefix}_load_after`
 - `{prefix}_delete_before` / `_delete_after` / `_delete_commit_after`
+- `model_load_before/after`, `model_delete_before/after/commit_after` (bản generic, payload `object`)
+
+Collection (`Magento\Framework\Model\ResourceModel\Db\Collection\AbstractCollection`) dispatch `core_collection_abstract_load_before/after` và `{prefix}_load_before/after` nếu collection khai báo `$_eventPrefix`/`$_eventObject`.
 
 VD `Magento\Catalog\Model\Product`: `$_eventPrefix = 'catalog_product'`, `$_eventObject = 'product'` → event `catalog_product_save_after`, lấy data bằng `$observer->getEvent()->getProduct()`.
 
@@ -352,7 +355,7 @@ Xem thêm: [So sánh overview về Event, Plugin & DI](../DI%20%26%20Interceptor
 - Event `{prefix}_save_*` chỉ chạy khi save qua model/resource model; update bằng SQL trực tiếp hoặc một số mass action/import thì **không** có event.
 
 > [!WARNING]
-> Class observer **phải** implement `ObserverInterface`: ở developer mode sẽ throw `LogicException`, ở production chỉ log warning và observer **không chạy** (lỗi "im lặng").
+> Class observer **phải** implement `ObserverInterface`: ở developer mode sẽ throw `LogicException`; ở mode khác (default, production) chỉ log warning và observer **không chạy** (lỗi "im lặng").
 
 > [!WARNING]
 > Gọi `$object->save()` bên trong `*_save_after` của chính object đó → vòng lặp vô hạn / save trùng.

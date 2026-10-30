@@ -5,7 +5,7 @@ scope: backend
 status: current
 author: magento-team@
 owner: magento-team@
-updated: 2026-10-21
+updated: 2026-10-30
 tags: [database, snapshot, version-control, resource-model]
 ---
 
@@ -123,6 +123,9 @@ $before = $this->snapshot->getSnapshotData($order);
 ```
 
 `Snapshot` được dùng như shared instance (mặc định của DI), nên các resource model VersionControl inject class `Snapshot` gốc (Sales, Quote…) cùng chia sẻ một kho snapshot trong request. Ngoại lệ: Customer/Customer Address được inject virtualType `EavVersionControlSnapshot` / `CustomerAddressSnapshot` (`Magento_Customer` `etc/di.xml`) – đó là instance riêng, nên inject `Snapshot` gốc để debug customer sẽ không thấy snapshot.
+
+> [!NOTE]
+> `CustomerAddressSnapshot` là virtualType của `Magento\Customer\Model\ResourceModel\Db\VersionControl\AddressSnapshot` – address mặc định (billing/shipping) luôn bị coi là modified ngoài customer save. `Address\Collection` dùng `EavVersionControlSnapshot` còn resource `Address` dùng `CustomerAddressSnapshot`, nên address load qua collection vẫn luôn bị UPDATE khi save.
 
 ## 5. Pitfalls
 

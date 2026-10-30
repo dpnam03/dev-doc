@@ -5,7 +5,7 @@ scope: backend
 status: current
 author: magento-team@
 owner: magento-team@
-updated: 2026-10-29
+updated: 2026-10-30
 tags: [architecture, module, overview]
 ---
 
@@ -89,12 +89,12 @@ Khi truy xuất đọc thông tin của quote, hay order chúng ta sẽ không c
 
 - Cố gắng thực hiện join dữ liệu để lấy lại thông tin về product, và đẩy vào `order_item`.
   => Join dữ liệu sẽ làm tốc độ truy vấn chậm hơn, việc tăng thêm ràng buộc join khiến hệ thống khó mở rộng, cũng như sẽ có thể xảy ra nhiều trường hợp không dự đoán được trước khi bảo trì. Như một bảng dữ liệu bị lock trong quá trình đọc ghi, dẫn đến việc join ảnh hưởng đến bảng dữ liệu khác.
-- Giảm thiếu Khóa ngoại FK trong cách thiết kế database. Magento cũng đã thiết kế DB để giảm FK để giảm thiểu mức độ phụ thuộc giữa các module, thành phần trong ứng dụng.
+- Giảm thiểu khóa ngoại FK trong cách thiết kế database. Magento cũng đã thiết kế DB để giảm FK để giảm thiểu mức độ phụ thuộc giữa các module, thành phần trong ứng dụng.
 - Thiết kế DB với quan hệ n-n ntn nên hạn chế sử dụng.
   Đọc thêm mô tả giải pháp tại:
-  - [SQL many-to-many relationship | Dgraph Blog](https://dgraph.io/blog/post/sql-many-to-many-relationship/)
+  - [SQL many-to-many relationship | Dgraph Blog (bản lưu Wayback Machine)](https://web.archive.org/web/20241211221426/https://dgraph.io/blog/post/sql-many-to-many-relationship/)
   - [Is it a good practice to have as little many-to-many relationships in a relational database? | Quora](https://www.quora.com/Is-it-a-good-practice-to-have-as-little-many-to-many-relationships-in-a-relational-database)
-- Tùy trường hợp để lụa chọn giữa denormalize-database và normalize-database
+- Tùy trường hợp để lựa chọn giữa denormalize-database và normalize-database
 
 ## 2. Magento Layer Architecture
 
@@ -247,7 +247,7 @@ Plugin vì có thể sử dụng nhiều interceptor tới một function vì v�
 
 - Các Interceptor sẽ được generated trong `generated/code`
 - trait `Magento\Framework\Interception\Interceptor`
-- Plugin list sau khi compile được lưu trong: `generated/metadata/<scopes>|plugin-list.php` (vd. `global|frontend|plugin-list.php`, xem `Magento\Framework\Interception\PluginListGenerator`)
+- Plugin list sau khi compile được lưu trong: `generated/metadata/primary|global|<area>|plugin-list.php` (vd. `primary|global|plugin-list.php`, `primary|global|frontend|plugin-list.php`, xem `Magento\Framework\Interception\PluginListGenerator::write()`)
 
 ### 3.6. So sánh việc sử dụng Event, Plugin & DI
 
@@ -259,7 +259,7 @@ Plugin vì có thể sử dụng nhiều interceptor tới một function vì v�
 
 Mỗi event sẽ thực dispatch để thực hiện thông báo việc đã thực hiện xong hành động và truyền data tới các observer.
 
-Các observer chỉ thực hiện hành động dựa trên thông báo từ Subject, không thể thực hiện sửa đổi hoặc thay thế hành động của đối tượng gốc ban đầu. Event-Observer chỉ thay đổi được về data của object được truyền vào bằng các hàm `setData()`.
+Các observer chỉ thực hiện hành động dựa trên thông báo từ Subject. Observer không thay thế được method/đối tượng gốc như preference/around plugin, nhưng có thể gọi các public method (setter, `setData()`…) trên object được truyền qua event, set action flag (`FLAG_NO_DISPATCH`) hoặc throw exception để chặn luồng xử lý (vd. `Magento\Captcha\Observer\CheckUserLoginObserver`).
 
 Event thường được dispatch trong controller, model, resource model sau, và trước khi các hành động được thực hiện.
 Thi thoảng có thể thấy trong view của layout, nhưng cách thiết kế view, block kiểu ntn không hiệu quả lắm vì Magento nên dùng page cache để cải thiện performance.
@@ -319,7 +319,7 @@ Plugin sẽ thực hiện một interceptor lên object gốc, yếu điểm s�
 
 ![Interceptor đứng giữa Client và Server: request đi qua PreHandle(), response đi qua PostHandle(), cùng AfterCompletion()](images/magento-architecture-kien-truc-tong-quan-cua-adobe-commerce/image-07.png)
 
-*Hình 9: Minh hoạ interceptor chặn trước và sau lời gọi xử lý chính*
+*Hình 9: Minh hoạ chung về interceptor chặn trước và sau lời gọi xử lý chính (không phải API Magento); Magento dùng before/around/after plugin*
 
 Ưu điểm:
 
@@ -505,9 +505,9 @@ Các loại cache trong Magento
 *Hình 12: Varnish Cache làm reverse proxy giữa Client và Web Server*
 
 So sánh varnish với một số giải pháp page cache trực tiếp trên Magento, và các dịch vụ saas trong cloud.
-Sự khác biệt lớn nhất Varnish sẽ cache lại data html dựa trên router, varnish sẽ không cần phải thực hiện các bước matching, tìm kiếm router, load config … trong base magento.
+Sự khác biệt lớn nhất: Varnish cache HTML theo URL + Host (+ cookie `X-Magento-Vary`), trả response ngay tại Varnish mà không cần bootstrap PHP/Magento (không load config, không matching router …).
 
-Các phương pháp trên M2 server thì vẫn phải thực hiện thông matching url, get configuration.
+Built-in FPC vẫn phải bootstrap Magento (ObjectManager, DI config theo area, plugin của FrontController) rồi mới tra cache; cache hit thì trả về trước bước router match (`Magento\PageCache\Model\App\FrontController\BuiltinPlugin::aroundDispatch()`).
 
 SAAS thì cơ chế khá tương tự như Varnish, nhưng khác biệt là Varnish dễ dàng để tự config và chỉnh sửa, debug và view logging. Và về mặt chi phí vận hành thì Varnish sẽ thấp hơn.
 
@@ -516,9 +516,9 @@ Varnish sẽ được mô tả kỹ hơn khi nói về performance
 Một số giải pháp page cache
 
 - [Genaker/FastFPC](https://github.com/Genaker/FastFPC)
-- Default page cache magento sử dụng redis
+- Built-in page cache của Magento (mặc định lưu file `var/page_cache`, có thể cấu hình Redis)
 - Fastly
-- HAProxy Caching: Khá tương tự Varnish [Advanced HAProxy caching strategies | LoadForge](https://loadforge.com/guides/advanced-haproxy-caching-strategies)
+- HAProxy Caching: Khá tương tự Varnish [Caching | HAProxy config tutorials](https://www.haproxy.com/documentation/haproxy-configuration-tutorials/performance/caching/)
 - Cloudflare
 
 ### 5.7. Split database & Master slave DB

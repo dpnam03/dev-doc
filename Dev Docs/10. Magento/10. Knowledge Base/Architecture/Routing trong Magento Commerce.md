@@ -5,7 +5,7 @@ scope: backend
 status: current
 author: magento-team@
 owner: magento-team@
-updated: 2026-10-29
+updated: 2026-10-30
 tags: [routing, request-flow, router, front-controller]
 ---
 
@@ -89,12 +89,12 @@ public function run(AppInterface $application)
 }
 ```
 
-bên cạnh đó bootstrap còn chứa các method để thực hiện check trạng thái của application:
+bên cạnh đó bootstrap còn chứa các method nội bộ để kiểm tra trạng thái của application (chỉ `isDeveloperMode()` là public):
 
-- `assertMaintenance()`
-- `assertInstalled()`
-- `isInstalled()`
-- `isDeveloperMode()`
+- `assertMaintenance()` (protected)
+- `assertInstalled()` (protected)
+- `isInstalled()` (private)
+- `isDeveloperMode()` (public)
 
 Trong quá trình này, ứng dụng sẽ trả về response là kết quả của application khi `launch()`
 
@@ -250,7 +250,7 @@ Với các phân vùng kiểu HTTP request được định nghĩa như một `F
 - `webapi_rest`/`webapi_soap`/`graphql`: không dùng RouterList, preference `FrontControllerInterface` được thay bằng `Magento\Webapi\Controller\Rest` / `Magento\Webapi\Controller\Soap` / `Magento\GraphQl\Controller\GraphQl` (khai báo ở `etc/<area>/di.xml`)
 
 ```xml
-<!-- config frontname -->
+<!-- Magento/Webapi/etc/di.xml – config frontname -->
 <type name="Magento\Framework\App\AreaList">
     <arguments>
         <argument name="areas" xsi:type="array">
@@ -271,13 +271,14 @@ Khi một request đến, Magento sẽ duyệt qua danh sách các router theo t
 
 ```mermaid
 flowchart TD
-    A["FrontController::dispatch(request)"] --> B{"request đã dispatched?<br/>hoặc vượt 100 vòng?"}
+    A["FrontController::dispatch(request)"] --> B{"request đã dispatched?"}
+    B -- "Chưa, nhưng > 100 vòng" --> X["throw LogicException"]
     B -- Chưa --> C["Lấy router tiếp theo trong _routerList<br/>(theo sortOrder)"]
     C --> D{"router->match(request)<br/>trả về Action?"}
     D -- Không --> C
-    D -- "NotFoundException" --> E["initForward(), action = noroute<br/>setDispatched(false)"]
+    D -- "router->match() hoặc action ném NotFoundException" --> E["initForward(), action = noroute<br/>setDispatched(false)"]
     E --> B
-    D -- Có --> F["processRequest()<br/>validate request, load design + translate"]
+    D -- Có --> F["processRequest()<br/>load design + translate, validate request (1 lần)"]
     F --> G["predispatch events → Action::execute()<br/>→ postdispatch events"]
     G --> H["Result object<br/>(ResultInterface / HttpInterface)"]
     B -- Rồi --> H

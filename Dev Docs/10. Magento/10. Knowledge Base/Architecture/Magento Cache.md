@@ -5,7 +5,7 @@ scope: backend
 status: current
 author: magento-team@
 owner: magento-team@
-updated: 2026-10-29
+updated: 2026-10-30
 tags: [cache, full-page-cache, cache-type, performance]
 ---
 
@@ -39,7 +39,7 @@ tags: [cache, full-page-cache, cache-type, performance]
 | Translations | translate | `TRANSLATE` |
 
 > [!NOTE]
-> Các cache type đánh dấu *(chỉ Adobe Commerce)* không có trong Magento Open Source 2.4.8 ([Manage the cache](https://experienceleague.adobe.com/en/docs/commerce-operations/configuration-guide/cli/manage-cache)).
+> Các cache type đánh dấu *(chỉ Adobe Commerce)* có trong output `cache:status` của Adobe Commerce ([Manage the cache](https://experienceleague.adobe.com/en/docs/commerce-operations/configuration-guide/cli/manage-cache)) nhưng không có trong `cache.xml` của Magento Open Source 2.4.8.
 
 ### 1.1. Configuration Cache
 
@@ -102,7 +102,7 @@ cacheId: `$this->generateCacheId(md5(implode('|', array_merge($this->getHandles(
 $cacheId = 'structure_' . $this->getUpdate()->getCacheId();
 $result = $this->cache->load($cacheId);
 if (!$result) {
-    $this->cache->save($this->serializer->serialize($data), $cacheId, $this->getUpdate()->getHandles());
+    $this->cache->save($this->serializer->serialize($data), $cacheId, $this->getUpdate()->getHandles(), $this->cacheLifetime);
 }
 ```
 
@@ -195,7 +195,7 @@ Bên trong AbstractCollectionDB (`Magento\Framework\Data\Collection\AbstractDb`)
 
 `AbstractCollectionDB::_fetchAll()` sẽ thực hiện một `$fetchStrategy::fetchAll()`
 
-Mặc định `FetchStrategyInterface` có preference là `Magento\Framework\Data\Collection\Db\FetchStrategy\Query` (luôn query DB, xem `app/etc/di.xml`). Chỉ collection được inject `fetchStrategy` là virtualType của FetchStrategyByCache (`Magento\Framework\Data\Collection\Db\FetchStrategy\Cache`) – vd. Store/Group/Website collection trong `Magento/Store/etc/di.xml`, Category collection trong `Magento/Catalog/etc/frontend/di.xml` – mới tìm collection data trong cache trước, với cacheId là prefix + md5 của query select.
+Mặc định `FetchStrategyInterface` có preference là `Magento\Framework\Data\Collection\Db\FetchStrategy\Query` (luôn query DB, xem `app/etc/di.xml`). Chỉ collection được inject `fetchStrategy` là virtualType của FetchStrategyByCache (`Magento\Framework\Data\Collection\Db\FetchStrategy\Cache`) – vd. Store/Group/Website collection trong `Magento/Store/etc/di.xml` (`Magento/Catalog/etc/frontend/di.xml` có khai báo virtualType `Category\Collection\FetchStrategy` nhưng core không inject vào collection nào) – mới tìm collection data trong cache trước, với cacheId là prefix + md5 của query select.
 
 `Magento\Framework\Data\Collection\Db\FetchStrategy\Cache`
 
@@ -288,7 +288,7 @@ Magento không cache câu lệnh DDL mà cache kết quả đọc metadata schem
 
 ### 1.7. Cache schema context webapi
 
-Cache schema context cho webapi: `Magento\Webapi\Model\AbstractSchemaGenerator::generateSchema()` cache schema theo context vào cache type Web Services Configuration (`config_webservice`, tag `WEBSERVICE`). Method này được kế thừa (không override) bởi:
+Cache schema context cho webapi: `Magento\Webapi\Model\AbstractSchemaGenerator::generate()` cache schema theo context (`generateCacheIdUsingContext()`) vào cache type Web Services Configuration (`config_webservice`, tag `WEBSERVICE`). `generate()` được kế thừa, còn `generateSchema()` (abstract) được implement riêng bởi:
 
 - `Magento\Webapi\Model\Rest\Swagger\Generator`
 - `Magento\Webapi\Model\Soap\Wsdl\Generator`
@@ -309,8 +309,9 @@ CACHE_TAG: `EAV`
 /**#@+
  * EAV cache ids
  */
-const ENTITIES_CACHE_ID = 'EAV_ENTITY_TYPES';
-const ATTRIBUTES_CACHE_ID = 'EAV_ENTITY_ATTRIBUTES';
+public const ENTITIES_CACHE_ID = 'EAV_ENTITY_TYPES';
+public const ATTRIBUTES_CACHE_ID = 'EAV_ENTITY_ATTRIBUTES';
+public const ATTRIBUTES_CODES_CACHE_ID = 'EAV_ENTITY_ATTRIBUTES_CODES';
 ```
 
 ModelEavConfig sẽ cache:

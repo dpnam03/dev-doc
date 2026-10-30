@@ -5,7 +5,7 @@ scope: backend
 status: current
 author: magento-team@
 owner: magento-team@
-updated: 2026-10-22
+updated: 2026-10-30
 tags: [di, di-xml, object-manager, plugin, virtual-type]
 ---
 
@@ -103,6 +103,7 @@ flowchart TD
     G -- "Có trong arguments" --> H{"Là object (instance)?"}
     G -- "Required, type-hint class" --> H
     G -- "Optional, không khai báo" --> J["Giá trị default"]
+    G -- "Required, không type-hint, không khai báo" --> X["throw BadMethodCallException"]
     H -- "shared (mặc định; lấy từ argument shared,<br/>nếu không có thì từ &lt;type shared&gt;)" --> L["ObjectManager::get()"]
     H -- "shared=false" --> M["ObjectManager::create()"]
     H -- "Không phải object" --> N["Giữ giá trị / parse array"]

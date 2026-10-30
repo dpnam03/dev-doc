@@ -5,7 +5,7 @@ scope: backend
 status: current
 author: magento-team@
 owner: magento-team@
-updated: 2026-10-22
+updated: 2026-10-30
 tags: [event, webhook, mage-os, event-driven, async-events]
 ---
 
@@ -50,7 +50,7 @@ composer create-project --repository-url=https://repo.mage-os.org/ mage-os/proje
 
 ### 2.1. Events & Observers (core)
 
-- Dispatch: `Magento\Framework\Event\ManagerInterface::dispatch(string $eventName, array $data = [])`.
+- Dispatch: `Magento\Framework\Event\ManagerInterface::dispatch($eventName, array $data = [])`.
 - Đăng ký: `etc/events.xml` (global) hoặc `etc/frontend|adminhtml|webapi_rest|graphql/events.xml`.
 - Observer implement `Magento\Framework\Event\ObserverInterface::execute(Observer $observer)`.
 - Chạy **đồng bộ, trong cùng request**; nếu event được dispatch bên trong transaction (VD `<prefix>_save_after`) thì observer chạy **trước khi commit** → không gọi HTTP chậm trong observer.
@@ -104,7 +104,7 @@ bin/magento queue:consumers:restart
 
 ### 2.3. Async & Bulk Web API
 
-- Async: `POST /rest/<store_code>/async/V1/<route>` → trả về `bulk_uuid` ngay, request được đưa vào queue.
+- Async: `POST|PUT|PATCH|DELETE /rest/<store_code>/async/V1/<route>` (không hỗ trợ GET) → trả về `bulk_uuid` ngay, request được đưa vào queue.
 - Bulk: `POST /rest/<store_code>/async/bulk/V1/<route>` → nhiều entity trong một request.
 - Xử lý bởi consumer `async.operations.all` (`Magento\AsynchronousOperations\Model\MassConsumer`).
 - Theo dõi: `GET /rest/V1/bulk/:bulkUuid/status`.
@@ -205,6 +205,9 @@ class PublishBrandUpdated implements ObserverInterface
 </config>
 ```
 
+> [!NOTE]
+> Tên exchange `magento-db` chỉ là quy ước tự đặt; core dùng exchange `magento` cho cả `db` lẫn `amqp` (`Magento\Framework\MessageQueue\DefaultValueProvider`). Với connection `db`, `Magento\MysqlMq\Model\Driver\Exchange::enqueue()` route theo binding topic của mọi exchange `db`, nên tên exchange không ảnh hưởng.
+
 **Ví dụ:** `queue_topology.xml` – binding topic → queue
 
 ```xml
@@ -276,7 +279,7 @@ bin/magento queue:consumers:start vendor.brand.updated
 ```
 
 > [!TIP]
-> Muốn chuyển sang RabbitMQ: đổi `connection="amqp"`, exchange `magento`, cấu hình `queue.amqp` trong `env.php` – code publisher/consumer giữ nguyên (chỉ nên đổi event sang `vendor_brand_save_commit_after`, xem WARNING ở trên).
+> Muốn chuyển sang RabbitMQ: đổi `connection="amqp"` (exchange giữ tên cũ hoặc dùng `magento` như core), cấu hình `queue.amqp` trong `env.php` – code publisher/consumer giữ nguyên (chỉ nên đổi event sang `vendor_brand_save_commit_after`, xem WARNING ở trên).
 
 ## 4. Best practices & lưu ý
 

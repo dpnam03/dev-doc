@@ -5,7 +5,7 @@ scope: backend
 status: current
 author: magento-team@
 owner: magento-team@
-updated: 2026-10-21
+updated: 2026-10-30
 tags: [database, optimization, index, indexer, performance]
 ---
 
@@ -221,9 +221,10 @@ foreach ($collection as $product) {
 }
 
 // TỐT HƠN cho dữ liệu flat: query trực tiếp, trả mảng
+$connection = $this->resource->getConnection();
 $select = $connection->select()
     ->from($this->resource->getTableName('vendor_module_item'), ['entity_id', 'sku'])
-    ->where('entity_id IN (?)', $ids);
+    ->where('entity_id IN (?)', $itemIds);
 $pairs = $connection->fetchPairs($select);
 ```
 
@@ -237,7 +238,7 @@ Ghi hàng loạt: `insertMultiple()`, `insertOnDuplicate()` thay vì `save()` t�
 - Tránh `getSize()` + `count()` + `load()` cùng lúc trên collection lớn; tránh `addAttributeToSelect('*')`.
 - Duyệt dữ liệu lớn theo batch – xem [iterator](iterator.md).
 - Xác minh hiệu quả bằng `EXPLAIN` và query log – xem [Explain & Profile query](Explain%20%26%20Profile%20query.md).
-- Thay đổi trực tiếp bằng SQL vào bảng subscription vẫn kích hoạt trigger mview; nhưng nếu mất trigger (vd. dump/restore DB không kèm trigger) thì schedule không còn ghi changelog – chuyển indexer sang `realtime` rồi `schedule` lại để Magento tạo lại trigger. Lưu ý: chuyển sang `realtime` sẽ **drop bảng `_cl`** (mất các thay đổi chưa xử lý) và **invalidate** indexer (`Indexer::setScheduled(false)`) → cron `indexer_reindex_all_invalid` sẽ full reindex; Adobe khuyên bật maintenance mode và tắt cron trước khi đổi mode. Cách nhẹ hơn: `bin/magento setup:upgrade` tạo lại trigger cho các indexer đang ở mode schedule mà không drop changelog, không invalidate (`Magento\Indexer\Setup\Recurring`).
+- Thay đổi trực tiếp bằng SQL vào bảng subscription vẫn kích hoạt trigger mview; nhưng nếu mất trigger (vd. dump/restore DB không kèm trigger) thì schedule không còn ghi changelog – chuyển indexer sang `realtime` rồi `schedule` lại để Magento tạo lại trigger. Lưu ý: chuyển sang `realtime` sẽ **drop bảng `_cl`** (mất các thay đổi chưa xử lý) và **invalidate** indexer (`Indexer::setScheduled(false)`) → cron `indexer_reindex_all_invalid` sẽ full reindex; Adobe khuyên bật maintenance mode và tắt cron trước khi đổi mode. Cách nhẹ hơn: `bin/magento setup:upgrade` tạo lại trigger cho các indexer đang ở mode schedule mà không drop changelog (`Magento\Indexer\Setup\Recurring`); bước tạo lại trigger không invalidate indexer, nhưng `Recurring` vẫn đánh dấu invalid các indexer mới hoặc có cấu hình `indexer.xml` thay đổi.
 
 ## Tham khảo
 

@@ -5,7 +5,7 @@ scope: backend
 status: current
 author: magento-team@
 owner: magento-team@
-updated: 2026-10-29
+updated: 2026-10-30
 tags: [code-generation, di-compile, dev-environment, deploy-mode]
 ---
 
@@ -62,7 +62,7 @@ Proxy là một code generator `\Magento\Framework\Code\Generator`
 
 *Hình 2: Autoloader đăng ký code generator, class chưa tồn tại (vd. `myClassFactory`) sẽ được generate rồi mới autoload*
 
-Proxy generator sẽ scan tất cả các file di.xml trong project sau đấy thực hiện tìm kiếm các class được khai báo Proxy
+Proxy generator sẽ scan tất cả các file di.xml trong project sau đấy thực hiện tìm kiếm các class được khai báo Proxy (`XmlScanner::collectEntities()` đồng thời quét cả các class `...Factory` khai báo trong argument/item qua `scanFactories()`)
 
 Chúng ta có thể xem lại đoạn code:
 
@@ -359,7 +359,7 @@ public function getInterceptionConfiguration($definedClasses)
 ```
 
 Code Generator:
-`\Magento\Framework\Interception\Code\Generator\Interceptor`
+`\Magento\Framework\Interception\Code\Generator\Interceptor` (khi chạy `setup:di:compile` dùng subclass `Magento\Setup\Module\Di\Code\Generator\Interceptor`)
 
 Trong `generated/code` chúng ta sẽ thấy các class trong file `**/**/Interceptor.php`
 
@@ -453,7 +453,7 @@ Writes plugin list configuration data per scope to generated metadata.
 
 Hành động này sẽ generate class configs cho plugin-list trong:
 
-`generated/metadata/**|plugin-list.php`
+`generated/metadata/<scope chain>|plugin-list.php`, vd. `primary|global|plugin-list.php`, `primary|global|frontend|plugin-list.php`
 
 ## 2. Config & Env environment
 
@@ -474,7 +474,7 @@ Hành động này sẽ generate class configs cho plugin-list trong:
 
 - Enable Developer mode
 - To speed up frontend development, turn off merging of CSS and JavaScript.
-- Make sure caching is turned on, only turn off `page_cache, block_html`
+- Đảm bảo cache luôn bật, chỉ tắt `full_page` và `block_html` khi dev (`bin/magento cache:disable full_page block_html`)
 - install and enable PHP OPcache
 
 BSS Docker: [Docker và ứng dụng để build môi trường chạy site magento](https://docs.google.com/document/d/1KLqLoKnM7RbItqMBPwp5zuuY6_nQG0ibWpKnOpCSYm4)
@@ -502,7 +502,7 @@ bin/magento dev:profiler:enable html
 > $elements = $this->getXml()->xpath('//' . Element::TYPE_BLOCK . '[@cacheable="false"]');
 > ```
 >
-> Chỉ cần một `<block cacheable="false">` có mặt trong layout là cả trang đó bị loại khỏi Full Page Cache
+> Chỉ cần một `<block cacheable="false">` có mặt trong layout **và block đó thực sự tồn tại trong layout structure** (chưa bị `remove`) là cả trang đó bị loại khỏi Full Page Cache
 
 ### 6.2. Configure the database profiler
 

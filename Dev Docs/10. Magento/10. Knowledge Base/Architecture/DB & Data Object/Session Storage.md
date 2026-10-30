@@ -5,7 +5,7 @@ scope: backend
 status: current
 author: magento-team@
 owner: magento-team@
-updated: 2026-10-21
+updated: 2026-10-30
 tags: [session, redis, storage]
 ---
 
@@ -185,7 +185,7 @@ public function execute()
 
 ## 5. Session & Full Page Cache
 
-- Trang **cacheable** được render một lần rồi phục vụ cho mọi người, nên Magento *depersonalize* session trong quá trình render layout cacheable (vd. `Magento\Customer\Model\Layout\DepersonalizePlugin`): trong block của trang cacheable, `customerSession->getCustomerId()` có thể trả `null`.
+- Trang **cacheable** được render một lần rồi phục vụ cho mọi người, nên Magento *depersonalize* session **sau khi generate elements của layout** (`Magento\Customer\Model\Layout\DepersonalizePlugin::afterGenerateElements()`): lúc render template `customerSession->getCustomerId()` trả `null`, nhưng trong constructor/`_prepareLayout()` của block session vẫn còn dữ liệu thật – đọc ở đó sẽ đưa dữ liệu cá nhân vào trang cache.
 - Dữ liệu riêng của user hiển thị trên trang cache → dùng **private content / customer-data sections**: implement `Magento\Customer\CustomerData\SectionSourceInterface::getSectionData()`, đăng ký vào `Magento\Customer\CustomerData\SectionPoolInterface` (argument `sectionSourceMap`), khai báo invalidation trong `etc/frontend/sections.xml`, đọc ở JS bằng `Magento_Customer/js/customer-data`.
 - Biến thể nội dung theo nhóm (customer group, currency…) → `Magento\Framework\App\Http\Context` (vary string), không phải session.
 - **Không** đặt `cacheable="false"` cho block chỉ để đọc session – cả trang sẽ không được cache.

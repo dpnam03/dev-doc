@@ -5,7 +5,7 @@ scope: backend
 status: current
 author: magento-team@
 owner: magento-team@
-updated: 2026-10-20
+updated: 2026-10-30
 tags: [api, controller, front-controller, webapi, rest]
 ---
 
@@ -47,7 +47,7 @@ sequenceDiagram
         V-->>FC: InvalidRequestException → result thay thế (redirect / 404)
     else Hợp lệ
         FC->>FC: controller_action_predispatch*
-        FC->>A: execute()
+        FC->>A: execute() – action extend AbstractAction: dispatch() → ACL → execute()
         A-->>FC: ResultInterface
         FC->>FC: controller_action_postdispatch*
     end
@@ -93,7 +93,7 @@ sequenceDiagram
 
 ## 3. URL → Action class
 
-URL storefront có dạng `/<frontName>/<controller path>/<action>`. Thiếu segment nào thì dùng giá trị mặc định `index` (`Magento\Framework\App\DefaultPath\DefaultPath` trong `app/etc/di.xml`).
+URL storefront có dạng `/<frontName>/<controller path>/<action>`. Thiếu controller hoặc action thì dùng giá trị mặc định `index` (`Magento\Framework\App\DefaultPath\DefaultPath` trong `app/etc/di.xml`). URL rỗng (trang chủ) lấy `frontName` từ config `web/default/front` (mặc định `cms`).
 
 `Magento\Framework\App\Router\ActionList::get()` ghép tên class theo quy tắc:
 
@@ -114,7 +114,7 @@ URL storefront có dạng `/<frontName>/<controller path>/<action>`. Thiếu seg
 
 Mọi Action class implement `Magento\Framework\App\ActionInterface` với một method duy nhất là `execute()`. Ngoài ra nên implement một hoặc nhiều **marker interface** `Http<Method>ActionInterface` để khai báo HTTP method mà action chấp nhận:
 
-- `HttpGetActionInterface` (nhận cả HEAD vì `HttpMethodMap` trong `app/etc/di.xml` map `HEAD` → `HttpGetActionInterface`; implement riêng `HttpHeadActionInterface` thì **không** nhận HEAD)
+- `HttpGetActionInterface` (nhận cả HEAD vì `HttpMethodMap` trong `app/etc/di.xml` map `HEAD` → `HttpGetActionInterface`). `HttpHeadActionInterface` đã `@deprecated 102.0.2` và không có trong `HttpMethodMap`, nên implement nó không có tác dụng: nếu đó là marker duy nhất thì action không bị giới hạn method. Muốn nhận HEAD thì implement `HttpGetActionInterface`.
 - `HttpPostActionInterface`
 - `HttpPutActionInterface`
 - `HttpDeleteActionInterface`
@@ -208,7 +208,7 @@ class Index extends \Magento\Backend\App\Action implements HttpGetActionInterfac
 - `ADMIN_RESOURCE` mặc định là `Magento_Backend::admin`.
 - `_isAllowed()` gọi `$this->_authorization->isAllowed(static::ADMIN_RESOURCE)`.
 - `dispatch()`: nếu không có quyền thì set status **403**. Chưa login thì redirect `*/auth/login`, đã login thì render layout `adminhtml_denied`.
-- CSRF ở admin do `BackendValidator` xử lý. Với action extend `AbstractAction`, nó gọi `$action->_processUrlKeys()`: khi admin đã login thì request **POST** (kể cả AJAX) phải có form key hợp lệ, còn request **không phải POST** phải có secret key trong URL (nếu bật *Add Secret Key to URLs*). Lỗi thì set `FLAG_NO_DISPATCH`, redirect về startup page của admin, hoặc trả JSON `{"error": true, "message": ...}` nếu URL có param `isAjax` / `ajax`.
+- CSRF ở admin do `BackendValidator` xử lý. Với action extend `AbstractAction`, nó gọi `$action->_processUrlKeys()`: khi admin đã login thì request **POST** (kể cả AJAX) phải có form key hợp lệ, còn request **không phải POST** phải có secret key trong URL (nếu bật *Add Secret Key to URLs*). Lỗi thì set `FLAG_NO_DISPATCH` và `FLAG_NO_POST_DISPATCH`, redirect về startup page của admin, hoặc trả JSON `{"error": true, "message": ...}` nếu URL có param `isAjax` / `ajax`.
 - Action admin **không** extend `AbstractAction` thì `BackendValidator` dùng logic dự phòng tương tự. Lỗi thì AJAX nhận 401 body rỗng, request thường bị redirect về startup page kèm message "Invalid security or form key. Please refresh the page."
 
 Với page storefront dành cho customer đã đăng nhập, Adobe khuyến nghị tự kiểm qua `Magento\Authorization\Model\UserContextInterface` (`getUserType()` / `getUserId()`) và throw `AuthorizationException` nếu chưa đăng nhập.

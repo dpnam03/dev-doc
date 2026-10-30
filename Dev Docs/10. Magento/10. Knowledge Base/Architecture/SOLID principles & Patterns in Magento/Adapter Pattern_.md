@@ -5,7 +5,7 @@ scope: backend
 status: current
 author: magento-team@
 owner: magento-team@
-updated: 2026-10-28
+updated: 2026-10-30
 tags: [design-pattern, adapter, structural]
 ---
 
@@ -15,7 +15,7 @@ tags: [design-pattern, adapter, structural]
 
 ## 1. Định nghĩa
 
-Adapter là một structural design pattern, như một bộ chuyển đổi giúp convert class thành một interface class mà hệ thống hỗ trợ. Thường được xây dựng để hệ thống có thể dễ dàng kết nối với các thư viện ngoài, cũng như dễ dàng thay đổi thư viện khi cần.
+Adapter là một structural design pattern, đóng vai trò bộ chuyển đổi: chuyển interface của một class (adaptee) sang interface mà client mong đợi (target), giúp các object có interface không tương thích làm việc được với nhau. Thường được xây dựng để hệ thống có thể dễ dàng kết nối với các thư viện ngoài, cũng như dễ dàng thay đổi thư viện khi cần.
 
 > [!NOTE]
 > Structural design pattern là các tập hợp pattern mô tả thiết kế cấu trúc, mối quan hệ, cách thức liên kết giữa các objects
@@ -34,7 +34,9 @@ Bài toán trong thực tế, là du lịch ở các quốc gia khác nhau thì 
 
 ## 3. Cách thức implement pattern
 
-**Ví dụ:** Target, Adaptee và Adapter viết bằng PHP (conceptual example của [Refactoring.Guru – Adapter in PHP](https://refactoring.guru/design-patterns/adapter/php/example), © Alexander Shvets, CC BY-NC-ND 4.0)
+### Ví dụ PHP – Adapter (Refactoring.Guru)
+
+Conceptual example của [Refactoring.Guru – Adapter in PHP](https://refactoring.guru/design-patterns/adapter/php/example) (© Alexander Shvets, CC BY-NC-ND 4.0). Đối chiếu với Magento ở mục 4: `Target` ≈ `AdapterInterface`, `Adapter` ≈ `Gd2` / `ImageMagick`, `Adaptee` ≈ PHP extension GD / Imagick; `clientCode()` ≈ code chỉ làm việc với `AdapterInterface` (vd. `Theme\Model\Wysiwyg\Storage`).
 
 ```php
 <?php
@@ -126,7 +128,7 @@ Cụ thể, Image Adapter hoạt động như sau:
 - `AbstractAdapter` implement `AdapterInterface`, chứa phần logic dùng chung (vd. `keepAspectRatio()`, `getImageType()`) còn các method xử lý ảnh (`open()`, `resize()`, `crop()`, `save()`, `getImage()`…) được khai báo abstract để lớp con hiện thực.
 - `Image\Adapter\Gd2` kế thừa từ `AbstractAdapter` và gọi các hàm của PHP extension GD để thực hiện các chức năng xử lý ảnh.
 - `Image\Adapter\ImageMagick` cũng kế thừa từ `AbstractAdapter` và gọi extension Imagick (ImageMagick) để thực hiện các chức năng xử lý ảnh tương tự.
-- `AdapterFactory` được sử dụng để lựa chọn Image Adapter phù hợp dựa trên cài đặt của hệ thống: alias lấy từ config `dev/image/default_adapter` (mặc định `GD2`, chỉnh ở *Stores > Configuration > Advanced > Developer > Image Processing Settings*), class lấy từ `dev/image/adapters` trong `Magento/Store/etc/config.xml`.
+- `AdapterFactory` được sử dụng để lựa chọn Image Adapter phù hợp dựa trên cài đặt của hệ thống: alias lấy từ config `dev/image/default_adapter` (mặc định `GD2`, chỉnh ở *Stores > Configuration > Advanced > Developer > Image Processing Settings* – tab *Developer* chỉ hiện ở developer mode; ở production mode dùng `bin/magento config:set dev/image/default_adapter IMAGEMAGICK`, sau đó flush Catalog Images Cache), class lấy từ `dev/image/adapters` trong `Magento/Store/etc/config.xml`. `create()` còn merge thêm mảng `adapterMap` khai báo qua `di.xml` (đè lên config) và gọi `checkDependencies()` trước khi trả adapter.
 
 ```xml
 <!-- Magento/Store/etc/config.xml (trích, nằm trong default/dev) -->

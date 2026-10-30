@@ -5,7 +5,7 @@ scope: backend
 status: current
 author: magento-team@
 owner: magento-team@
-updated: 2026-10-28
+updated: 2026-10-30
 tags: [design-pattern, composite, structural]
 ---
 
@@ -15,7 +15,7 @@ tags: [design-pattern, composite, structural]
 
 ## 1. Định nghĩa
 
-Là một structural design pattern
+Composite là một structural design pattern cho phép gom các object thành cấu trúc cây, rồi làm việc với cả cây như với một object đơn lẻ (client đối xử với leaf và composite như nhau).
 
 ![Một đơn hàng phức hợp dạng cây: hộp lớn chứa các hộp nhỏ hơn, trong đó có Hammer, Phone, Headphones, Charger và Receipt](images/composite-pattern/image-01.png)
 
@@ -29,9 +29,9 @@ Là một structural design pattern
 
 Cách thức hoạt động của Composite Pattern:
 
-- **Component:** Đây là một interface hoặc một abstract class, định nghĩa các phương thức chung cho cả leaf và composite. Trong Magento, Component có thể là một interface như `RelationInterface`.
+- **Component:** Đây là một interface hoặc một abstract class, định nghĩa các phương thức chung cho cả leaf và composite. Trong Magento, ví dụ đúng nghĩa là `QuoteValidationRuleInterface`.
 - **Leaf:** Đại diện cho các đối tượng đơn lẻ, chúng không chứa các đối tượng khác. Trong Magento, Leaf là một class xử lý cụ thể, ví dụ `Magento\Sales\Model\ResourceModel\Order\Relation` hay `ShippingAddressValidationRule`.
-- **Composite:** Đại diện cho các đối tượng phức hợp, có khả năng chứa các đối tượng leaf hoặc composite khác. Trong Magento, Composite có thể là một class như `QuoteValidationComposite` hoặc (dạng một tầng) `RelationComposite`. Composite sẽ delegate (ủy thác) tất cả các công việc cho các thành phần con của nó.
+- **Composite:** Đại diện cho các đối tượng phức hợp, có khả năng chứa các đối tượng leaf hoặc composite khác. Trong Magento là `QuoteValidationComposite` (cùng interface với rule con); `RelationComposite` chỉ là dạng gom mảng một tầng, không cùng interface với leaf (xem NOTE bên dưới). Composite sẽ delegate (ủy thác) tất cả các công việc cho các thành phần con của nó.
 
 Cụ thể hơn, Composite Pattern hoạt động như sau:
 
@@ -77,7 +77,7 @@ classDiagram
     RelationComposite o-- RelationInterface : relationProcessors
 ```
 
-*Hình 3: Composite trong Magento – `QuoteValidationComposite` implement chính `QuoteValidationRuleInterface` và chứa các rule con (di.xml của Magento_Quote khai báo 6 rule, hình vẽ 3); `RelationComposite` giữ mảng `RelationInterface` (`Sales\...\Order\Relation`, `Tax\...\Sales\Order\Relation`) và gọi qua method `processRelations()`*
+*Hình 3: Composite trong Magento – `QuoteValidationComposite` implement chính `QuoteValidationRuleInterface` và chứa các rule con (global di.xml của Magento_Quote khai báo 6 rule, hình vẽ 3); `RelationComposite` giữ mảng `RelationInterface` (`Sales\...\Order\Relation`, `Tax\...\Sales\Order\Relation`) và gọi qua method `processRelations()`*
 
 ### Ví dụ PHP – Composite (Refactoring.Guru)
 

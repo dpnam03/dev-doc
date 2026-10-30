@@ -5,7 +5,7 @@ scope: backend
 status: current
 author: magento-team@
 owner: magento-team@
-updated: 2026-10-21
+updated: 2026-10-30
 tags: [database, eav, attribute]
 ---
 
@@ -189,10 +189,11 @@ Với customer attribute: dùng `CustomerSetupFactory`, sau đó gán `used_in_f
 
 ```php
 // Chỉ select attribute cần dùng
+// setStoreId() phải gọi trước khi filter/join attribute
 $collection = $this->productCollectionFactory->create()
+    ->setStoreId($storeId)
     ->addAttributeToSelect(['name', 'vendor_warranty'])
-    ->addAttributeToFilter('vendor_warranty', ['notnull' => true])
-    ->setStoreId($storeId);
+    ->addAttributeToFilter('vendor_warranty', ['notnull' => true]);
 
 // Đọc 1 giá trị mà không load cả product
 $value = $this->productResource->getAttributeRawValue($productId, 'vendor_warranty', $storeId);
@@ -205,7 +206,7 @@ $this->productResource->saveAttribute($product, 'vendor_warranty');
 $this->productAction->updateAttributes($productIds, ['vendor_warranty' => '12 months'], $storeId);
 ```
 
-(`$this->productResource` là `Magento\Catalog\Model\ResourceModel\Product`, `$this->productAction` là `Magento\Catalog\Model\Product\Action` – model này dispatch event `catalog_product_attribute_update_before` và reindex Product EAV / Category Products rồi mới gọi `ResourceModel\Product\Action::updateAttributes()`; gọi thẳng resource model thì chỉ ghi DB, không có event/reindex.)
+(`$this->productResource` là `Magento\Catalog\Model\ResourceModel\Product`, `$this->productAction` là `Magento\Catalog\Model\Product\Action` – model này dispatch event `catalog_product_attribute_update_before`, gọi `ResourceModel\Product\Action::updateAttributes()` để ghi DB, **sau đó** reindex Product EAV (nếu attribute indexable) và Category Products (nếu indexer không ở mode schedule); các plugin trên `updateAttributes()` (vd. fulltext search) cũng chạy. Gọi thẳng resource model thì chỉ ghi DB, không có event/reindex.)
 
 ## 6. So sánh EAV và Flat
 

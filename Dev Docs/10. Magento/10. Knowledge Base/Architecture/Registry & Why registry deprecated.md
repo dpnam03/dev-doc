@@ -5,7 +5,7 @@ scope: backend
 status: current
 author: magento-team@
 owner: magento-team@
-updated: 2026-10-29
+updated: 2026-10-30
 tags: [registry, deprecated, service-contract]
 ---
 
@@ -55,6 +55,9 @@ Từ đây dễ dàng thấy rằng để thay thế Registry global chúng ta s
 
 Bản thân mỗi service class cũng giống như một Registry khi lưu trữ và khởi tạo lại object, nhưng phạm vi sẽ chỉ nằm trong module, vì vậy dễ kiểm soát xử lý bảo mật. Sự thay đổi or cập nhật chỉ ảnh hưởng trong phạm vi module và những func cho phép trong service classes.
 
+> [!WARNING]
+> Service class thay thế Registry nên **stateless** ([Technical Guidelines](https://developer.adobe.com/commerce/php/coding-standards/technical-guidelines) 2.9: *"Service classes … SHOULD NOT have a mutable state"*). Nếu cần cache trong request (memoization) thì giới hạn trong module, key theo ID, và implement `ResetAfterRequestInterface::_resetState()` để an toàn khi chạy application server.
+
 Bên cạnh đó việc xử lý service class developer sẽ có thể chủ động xử lý lưu trữ một phần or toàn phần dữ liệu, or lấy dữ liệu từ cache để có thể tăng performance của ứng dụng ….
 
 ```mermaid
@@ -78,11 +81,13 @@ flowchart LR
 use Magento\Catalog\Api\CategoryRepositoryInterface;
 use Magento\Catalog\Api\Data\CategoryInterface;
 use Magento\Catalog\Model\Session as CatalogSession;
+use Magento\Framework\Exception\NoSuchEntityException;
+use Magento\Framework\ObjectManager\ResetAfterRequestInterface;
 
 /**
- * GetCurrentCategoryService
+ * Category xem gần nhất (lưu trong catalog session), không phải category của request hiện tại
  */
-class GetCurrentCategoryService
+class GetLastViewedCategoryService implements ResetAfterRequestInterface
 {
     private ?CategoryInterface $currentCategory = null;
 
@@ -96,10 +101,22 @@ class GetCurrentCategoryService
     {
         if (!$this->currentCategory) {
             $categoryId = $this->catalogSession->getLastViewedCategoryId();
-            $this->currentCategory = $categoryId ? $this->categoryRepository->get($categoryId) : null;
+            if (!$categoryId) {
+                return null;
+            }
+            try {
+                $this->currentCategory = $this->categoryRepository->get($categoryId);
+            } catch (NoSuchEntityException) {
+                return null;
+            }
         }
 
         return $this->currentCategory;
+    }
+
+    public function _resetState(): void
+    {
+        $this->currentCategory = null;
     }
 }
 ```

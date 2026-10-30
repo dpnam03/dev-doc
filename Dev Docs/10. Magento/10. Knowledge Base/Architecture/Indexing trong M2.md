@@ -5,7 +5,7 @@ scope: backend
 status: current
 author: magento-team@
 owner: magento-team@
-updated: 2026-10-29
+updated: 2026-10-30
 tags: [indexer, indexing, mview, performance]
 ---
 
@@ -160,6 +160,8 @@ bin/magento indexer:show-dimensions-mode
 | `catalogrule_product` | `Magento\CatalogRule\Model\Indexer\Product\ProductRuleIndexer` |
 | `catalog_product_price` | `Magento\Catalog\Model\Indexer\Product\Price` |
 | `catalogsearch_fulltext` | `Magento\CatalogSearch\Model\Indexer\Fulltext` |
+| `catalog_category_flat` | `Magento\Catalog\Model\Indexer\Category\Flat` (chỉ dùng khi bật Flat Catalog) |
+| `catalog_product_flat` | `Magento\Catalog\Model\Indexer\Product\Flat` (chỉ dùng khi bật Flat Catalog) |
 
 Adobe Commerce có thêm `targetrule_product_rule`, `targetrule_rule_product`, `salesrule_rule`, … Luôn chạy `bin/magento indexer:info` để xem danh sách thực tế của project.
 

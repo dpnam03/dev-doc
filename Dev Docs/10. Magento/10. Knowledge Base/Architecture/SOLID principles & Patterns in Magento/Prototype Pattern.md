@@ -5,7 +5,7 @@ scope: backend
 status: current
 author: magento-team@
 owner: magento-team@
-updated: 2026-10-28
+updated: 2026-10-30
 tags: [design-pattern, prototype, creational]
 ---
 
@@ -15,7 +15,7 @@ tags: [design-pattern, prototype, creational]
 
 ## 1. Định nghĩa
 
-Prototype Pattern là một trong những Creational Pattern. Nó có nhiệm vụ khởi tạo một đối tượng bằng cách clone một đối tượng đã tồn tại thay vì khởi tạo với từ khóa `new`. Đối tượng mới là một bản sao có thể giống 100% với đối tượng gốc, và cũng có thể ko cần giống hoàn toàn với đối tượng gốc.
+Prototype Pattern là một trong những Creational Pattern. Nó có nhiệm vụ khởi tạo một đối tượng bằng cách clone một đối tượng đã tồn tại thay vì khởi tạo với từ khóa `new`. Đối tượng mới là một bản sao có thể giống 100% với đối tượng gốc, và cũng có thể không cần giống hoàn toàn với đối tượng gốc.
 
 Chúng ta có thể thay đổi dữ liệu của nó mà không ảnh hưởng đến đối tượng gốc.
 
@@ -180,12 +180,13 @@ if ($quote->isVirtual()) {
 
 ```mermaid
 flowchart TD
-    A["QuoteManagement::submitQuote()"] --> B["Quote\Address\ToOrder::convert($address, $orderData)"]
+    A["QuoteManagement::submitQuote()"] --> A0["OrderFactory::create() → $order (trong submitQuote)"]
+    A0 --> B["Quote\Address\ToOrder::convert($address, $orderData)"]
     B --> C["DataObject\Copy::getDataFromFieldset()<br/>fieldset sales_convert_quote_address, aspect to_order"]
-    C --> D["OrderFactory::create()"]
-    D --> E["DataObjectHelper::populateWithArray($order, $orderData, OrderInterface::class)"]
+    C --> D["OrderFactory::create() → order tạm trong convert()"]
+    D --> E["DataObjectHelper::populateWithArray(order tạm, array_merge($orderData, $data), OrderInterface::class)"]
     E --> F["DataObject\Copy::copyFieldsetToTarget()<br/>fieldset sales_convert_quote, aspect to_order"]
-    F --> G["DataObjectHelper::mergeDataObjects(OrderInterface::class, $order, ...)"]
+    F --> G["DataObjectHelper::mergeDataObjects(OrderInterface::class, $order, order tạm)"]
     G --> H["$order đã mang dữ liệu copy từ quote"]
 ```
 

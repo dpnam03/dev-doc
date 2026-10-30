@@ -5,7 +5,7 @@ scope: backend
 status: current
 author: magento-team@
 owner: magento-team@
-updated: 2026-10-29
+updated: 2026-10-30
 tags: [config, env-php, directory-list, deployment]
 ---
 
@@ -95,8 +95,8 @@ Examples of environment or system-specific values include:
 
 Configuration trong Magento
 
-- Sensitive and environment-specific settings
-- Set configuration values
+- [Sensitive and environment-specific settings](https://developer.adobe.com/commerce/php/development/configuration/sensitive-environment-settings)
+- [Set configuration values](https://experienceleague.adobe.com/en/docs/commerce-operations/configuration-guide/cli/configuration-management/set-configuration-values)
 
 ## 3. ENV
 
@@ -122,11 +122,15 @@ The general format of system settings variable names follows:
 
   `CONFIG__STORES__<STORE_VIEW_CODE>__<SYSTEM__VARIABLE__NAME>`
 
+  Website scope: `CONFIG__WEBSITES__<WEBSITE_CODE>__<SYSTEM__VARIABLE__NAME>`
+
+`<SYSTEM__VARIABLE__NAME>` = config path viết hoa, thay mỗi `/` bằng `__` (vd. `general/store_information/merchant_vat_number` → `GENERAL__STORE_INFORMATION__MERCHANT_VAT_NUMBER`).
+
 For more information about scopes, see:
 
 - Step 1: Find the website or store view scope value
-- Commerce User Guide topic on scope
-- Scope quick reference
+- [Commerce User Guide topic on scope](https://experienceleague.adobe.com/en/docs/commerce-admin/start/setup/websites-stores-views#scope-settings)
+- [Scope quick reference](https://experienceleague.adobe.com/en/docs/commerce-admin/config/scope-change#scope-quick-reference)
 
 ### 3.2. How to use environment variables
 

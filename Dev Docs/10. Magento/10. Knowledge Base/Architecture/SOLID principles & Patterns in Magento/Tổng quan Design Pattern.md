@@ -5,7 +5,7 @@ scope: backend
 status: current
 author: magento-team@
 owner: magento-team@
-updated: 2026-10-28
+updated: 2026-10-30
 tags: [design-pattern, solid, overview]
 ---
 
@@ -45,11 +45,14 @@ mindmap
     Structural
       Adapter
       Composite
+      Decorator
       Facade
       Proxy
     Behavioral
       Chain of Responsibility
+      Command
       Iterator
+      State
       Strategy
       Observer
 ```
@@ -83,6 +86,7 @@ Các mẫu phổ biến:
 
 - **Adapter:** Cho phép các lớp có interface không tương thích làm việc cùng nhau bằng cách chuyển đổi interface. Ví dụ trong Magento: `Magento\Framework\Image\Adapter\AdapterInterface`.
 - **Composite:** Cho phép xử lý các đối tượng đơn lẻ và các nhóm đối tượng một cách thống nhất thông qua cấu trúc cây (tree): client làm việc với một node lá hay một nhóm node con qua cùng một interface.
+- **Decorator:** Gắn thêm hành vi cho một object một cách động bằng cách bọc nó trong một object khác có cùng interface, thay vì tạo lớp con.
 - **Facade:** Cung cấp một interface đơn giản để tương tác với một hệ thống phức tạp. Facade giúp che giấu sự phức tạp bên trong và giúp client dễ sử dụng hơn. Facade có thể được sử dụng trong API Gateway hoặc Service Layer.
 - **Proxy:** Cung cấp một đối tượng đại diện để kiểm soát việc truy cập đến một đối tượng khác. Ví dụ trong Magento: các class Proxy được tạo ra để lazy loading object.
 
@@ -93,7 +97,9 @@ Các mẫu phổ biến:
 Các mẫu phổ biến:
 
 - **Chain of Responsibility:** Chuyển yêu cầu dọc theo một chuỗi các handler cho đến khi có một handler xử lý được yêu cầu. Ví dụ trong Magento: `Magento\Framework\App\FrontController::dispatch()` lần lượt gọi `match()` trên từng router trong `RouterListInterface`, router đầu tiên trả về action thì dừng chuỗi.
+- **Command:** Đóng gói một yêu cầu thành một object, cho phép truyền yêu cầu như tham số, xếp hàng, ghi log hoặc undo.
 - **Iterator:** Cung cấp cách truy cập tuần tự các phần tử của một tập hợp mà không cần biết cấu trúc bên trong của tập hợp đó. Ví dụ trong Magento: `Magento\Framework\Data\Collection` implement `\IteratorAggregate`, nên có thể `foreach ($collection as $item)`; Iterator cũng hay dùng để duyệt các phần tử của Composite Pattern.
+- **State:** Cho phép một object thay đổi hành vi khi trạng thái bên trong của nó thay đổi; mỗi trạng thái được tách thành một class riêng.
 - **Strategy:** Định nghĩa một họ các thuật toán và cho phép các thuật toán này được lựa chọn và sử dụng một cách linh hoạt.
 - **Observer:** Cho phép các đối tượng thông báo cho các đối tượng khác về sự thay đổi trạng thái. Magento sử dụng mẫu này trong hệ thống event.
 
@@ -113,7 +119,19 @@ Các mẫu phổ biến:
 - [Refactoring.Guru – Catalog of Design Patterns](https://refactoring.guru/design-patterns/catalog)
 
 **Bài liên quan trong Knowledge Base**
+- [Builder](Builder.md)
 - [Factories](Factories%20Patterns.md)
+- [Prototype](Prototype%20Pattern.md)
+- [Object Pool](Object%20Pool_.md)
+- [Adapter](Adapter%20Pattern_.md)
+- [Composite](Composite%20Pattern.md)
+- [Decorator](Decorator%20Pattern.md)
+- [Facade](Facade%20Pattern.md)
 - [Proxy](Proxies.md)
 - [Chain of Responsibility](Chain%20of%20Responsibility.md)
+- [Command](Command%20Design%20Pattern.md)
+- [Iterator](Iterator%20Design%20Pattern.md)
+- [State](State%20Design%20Pattern.md)
+- [Strategy](Strategy%20Design%20Pattern.md)
 - [Observer](Observer.md)
+- [CQRS](CQRS%20-%20Command%20and%20Query%20Responsibility%20Segregation_.md)

@@ -5,7 +5,7 @@ scope: backend
 status: current
 author: magento-team@
 owner: magento-team@
-updated: 2026-10-29
+updated: 2026-10-30
 tags: [area, architecture, routing]
 ---
 
@@ -64,16 +64,16 @@ flowchart TD
 
 *Hình 1: `Magento\Framework\App\Area::load()` và `_loadPart()` – mỗi part (config, design, translate) chỉ được load một lần cho mỗi area*
 
-Mỗi area sẽ thực hiện load config DI cho ObjectManager. Tùy Environment mode mà dùng loader khác nhau:
+Mỗi area sẽ thực hiện load config DI cho ObjectManager. Loader được chọn theo **ObjectManager environment** (không phải deploy mode `MAGE_MODE`): `Magento\Framework\App\EnvironmentFactory::getMode()` dùng `Compiled` nếu tồn tại `generated/metadata/global.php`, ngược lại dùng `Developer`.
 
-- mode=Developer: `Magento\Framework\App\ObjectManager\Environment\Developer` (`getObjectManagerConfigLoader()` trả `null`) → dùng `Magento\Framework\App\ObjectManager\ConfigLoader::load($area)`: đọc các file `di.xml` của area rồi cache lại với key
+- Environment `developer` (chưa compile): `Magento\Framework\App\ObjectManager\Environment\Developer` (`getObjectManagerConfigLoader()` trả `null`, `configureObjectManager()` gán `ConfigLoader`) → dùng `Magento\Framework\App\ObjectManager\ConfigLoader::load($area)`: đọc các file `di.xml` của area rồi cache lại với key
 
 ```php
 // Magento\Framework\App\ObjectManager\ConfigLoader::load()
 $cacheId = $area . '::DiConfig';
 ```
 
-- mode=Compiled: `Magento\Framework\App\ObjectManager\Environment\Compiled` → dùng `Magento\Framework\App\ObjectManager\ConfigLoader\Compiled::load($area)`: đọc thẳng file metadata `generated/metadata/$area.php` (sinh ra bởi `setup:di:compile`)
+- Environment `compiled` (đã chạy `setup:di:compile`, kể cả khi đang ở developer mode): `Magento\Framework\App\ObjectManager\Environment\Compiled` → dùng `Magento\Framework\App\ObjectManager\ConfigLoader\Compiled::load($area)`: đọc thẳng file metadata `generated/metadata/$area.php` (sinh ra bởi `setup:di:compile`)
 
 ## 2. Area frontName
 

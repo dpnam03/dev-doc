@@ -5,7 +5,7 @@ scope: backend
 status: current
 author: magento-team@
 owner: magento-team@
-updated: 2026-10-28
+updated: 2026-10-30
 tags: [design-pattern, proxy, structural, lazy-loading]
 ---
 
@@ -203,12 +203,16 @@ Xem lại đoạn mã sau chúng ta sẽ thấy Magento sẽ
 **Source:** `Magento\Setup\Module\Di\App\Task\Operation\ProxyGenerator::doOperation()`
 
 ```php
-// collect all proxy entities in di.xml
+// setup/src/Magento/Setup/Module/Di/App/Task/Operation/ProxyGenerator.php
+$files = $this->configurationScanner->scan('di.xml');
 $proxies = $this->proxyScanner->collectEntities($files);
 foreach ($proxies as $entityName) {
     class_exists($entityName);
 }
 ```
+
+> [!NOTE]
+> `XmlScanner::collectEntities()` trả về cả các `...\Proxy` lẫn `...Factory` khai báo trong di.xml, nên bước này cũng generate luôn Factory; Proxy trỏ tới class không tồn tại sẽ bị ghi log `Invalid proxy class`.
 
 Khi thực hiện check, M2 sẽ sử dụng autoloader
 
@@ -241,7 +245,7 @@ path: generated/code/{subjectPath}/Proxy.php
 => subject là interface: class \{subjectInterface}\Proxy implements \{subjectInterface}, \Magento\Framework\ObjectManager\NoninterceptableInterface
 ```
 
-Theo `Proxy::_generateCode()` và `Proxy::_getClassMethods()`: constructor nhận `ObjectManagerInterface $objectManager, $instanceName = <subject>, $shared = true`; mỗi public method (trừ constructor, `final`, `static`) được generate thành `$this->_getSubject()->method(...)`; ngoài ra có `__sleep`, `__wakeup`, `__clone` (*Clone proxied instance*), `__debugInfo`.
+Theo `Proxy::_generateCode()` và `Proxy::_getClassMethods()`: constructor nhận `ObjectManagerInterface $objectManager, $instanceName = <subject>, $shared = true`; mỗi public method (trừ constructor, destructor, `final`, `static` và các magic method `__sleep/__wakeup/__clone/__debugInfo`) được generate thành `$this->_getSubject()->method(...)`; riêng `_resetState()` chỉ forward khi subject đã được khởi tạo; ngoài ra có `__sleep`, `__wakeup`, `__clone` (*Clone proxied instance*), `__debugInfo`.
 
 ## 3. Vậy Proxy là gì? Tại sao Magento lại generate các class này
 

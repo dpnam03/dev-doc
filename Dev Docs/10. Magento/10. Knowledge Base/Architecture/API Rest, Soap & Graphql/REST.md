@@ -5,7 +5,7 @@ scope: backend
 status: current
 author: magento-team@
 owner: magento-team@
-updated: 2026-10-20
+updated: 2026-10-30
 tags: [api, rest, webapi, http]
 ---
 
@@ -17,9 +17,9 @@ tags: [api, rest, webapi, http]
 
 Đầu tiên trở lại với định nghĩa về Rest API
 
-Rest ko phải một giao thức, hay một tiêu chuẩn. Rest là một phong kiến trúc viết API
+Rest ko phải một giao thức, hay một tiêu chuẩn. Rest là một phong cách kiến trúc (architectural style) viết API
 
-`RE presentational  S state  Transfer`
+`REpresentational State Transfer`
 
 Rest sẽ có những nguyên tắc, tiêu chuẩn và ràng buộc riêng để thực hiện
 
@@ -53,15 +53,18 @@ Trong Magento: resource và method khai báo trong `webapi.xml`, representation 
 
 Tách biệt client-server, sự thay đổi code ở client và server ko ảnh hưởng tới nhau, chỉ ảnh hưởng nhau ở API Interface
 
-> “Servers and clients may also be replaced and developed independently, as long as the interface between them is not altered.”
+> "Separation of concerns is the principle behind the client-server constraints. [...] The separation allows the components to evolve independently, thus supporting the Internet-scale requirement of multiple organizational domains." — [Fielding §5.1.2](https://ics.uci.edu/~fielding/pubs/dissertation/rest_arch_style.htm)
 
 #### Stateless
 
 Tương tác giữa client-server là ko lưu trữ trạng thái, Server sẽ ko lưu trữ thông tin về http request của client `no history, no session`
 
-> *“No client context shall be stored on the server between requests. The client is responsible for managing the state of the application.”*
+> "...each request from client to server must contain all of the information necessary to understand the request, and cannot take advantage of any stored context on the server. Session state is therefore kept entirely on the client." — [Fielding §5.1.3](https://ics.uci.edu/~fielding/pubs/dissertation/rest_arch_style.htm)
 
 Stateless sẽ giúp ứng dụng dễ dàng mở rộng, và triển khai đồng thời tại nhiều server
+
+> [!NOTE]
+> Trong Magento: REST stateless khi gọi bằng token (Bearer/OAuth). Nhưng Magento vẫn chấp nhận session cookie của customer/admin (session-based authentication cho JS cùng domain, xem `CustomerSessionUserContext` / `AdminSessionUserContext` trong `etc/webapi_rest/di.xml` của `Magento_Customer` / `Magento_User`), khi đó request phụ thuộc session lưu trên server. Xem [Authentication](https://developer.adobe.com/commerce/webapi/get-started/authentication/).
 
 So sánh Stateless và Stateful
 
@@ -73,7 +76,7 @@ So sánh Stateless và Stateful
 |---|---|---|
 | Định nghĩa | Là trạng thái không lưu các dữ liệu của client trên server | Là trạng thái lưu dữ liệu của client trên server |
 | Ví dụ | HTTP, DNS, UDP | FTP, Telnet |
-| Hạn chế máy chủ | Máy chủ không cần lưu giữ thông tin máy chủ hoặc các chi tiết cho phiên của nó | Máy chủ được lưu giữ để yêu cầu duy trì trạng thái hiện tại & thông tin phiên làm việc |
+| Hạn chế máy chủ | Máy chủ không cần lưu giữ thông tin máy khách hoặc các chi tiết cho phiên của nó | Máy chủ được lưu giữ để yêu cầu duy trì trạng thái hiện tại & thông tin phiên làm việc |
 | Sự phụ thuộc | Máy chủ và máy khách được kết hợp lỏng lẻo, có thể hoạt động độc lập | Máy chủ và máy khách có sự ràng buộc chặt chẽ |
 | Thiết kế | Thiết kế máy chủ đơn giản | Thiết kế máy chủ phức tạp & khó thực hiện |
 | Sự cố | Khi có sự cố, máy chủ dễ dàng khởi động lại | Máy chủ phải lưu giữ nhiều thông tin khác nhau nên rất khó quản lý sự cố |
@@ -174,8 +177,8 @@ sequenceDiagram
     C->>A: POST /rest/{store}/async/V1/...
     A->>A: inputParamsResolver resolve()
     A->>M: publishMass(topicName, entitiesParams)
-    M->>M: scheduleBulk() – tạo bulk_uuid và operations
-    M->>Q: publish operations (topic async.*)
+    M->>M: generateId() → bulk_uuid, tạo operations
+    M->>Q: BulkManagement::scheduleBulk() → publishOperations() (topic async.*)
     A-->>C: HTTP 202 + bulk_uuid
     W->>Q: nhận message
     W->>Svc: OperationProcessor gọi service method
@@ -249,6 +252,7 @@ sequenceDiagram
 - `$this->_pathProcessor->process()` (`Magento\Webapi\Controller\PathProcessor`) sử dụng để build PathInfo multiple store
   - set current store
   - remove store_code trong pathInfo
+  - store code `all` → set current store là admin store
 
 > [!NOTE]
 > mỗi request sẽ được xử lý thông qua một requestProcessorPool `Magento\Webapi\Controller\Rest\RequestProcessorPool`
@@ -445,8 +449,8 @@ Trong tài liệu này sẽ chủ yếu đề cập tới cách thức hoạt đ
 Executes the corresponding service contract.
 
 - Class: `Magento\Webapi\Controller\Rest\SynchronousRequestProcessor`
-- EntryPoint: `/rest/^\\/V\\d+/`
-- URL pattern: `/^\\/V\\d+/`
+- EntryPoint: `/rest/V1/...` (hoặc `/rest/<store_code>/V1/...`)
+- URL pattern: `/^\/V\d+/` (`SynchronousRequestProcessor::PROCESSOR_PATH`)
 - Order : 100
 - config: `webapi.xml`
 - InputValidator: `Magento\Framework\Webapi\ServiceInputProcessor`
@@ -518,7 +522,7 @@ tương ứng với config trong webapi.xml:
 
 cũng trong, `Magento\Webapi\Controller\Rest\InputParamsResolver` sẽ đóng vai trò resolve input parameters
 
-Validate, Convert, Overrider Parameters
+Validate, Convert, Override Parameters
 
 ```mermaid
 sequenceDiagram
@@ -544,7 +548,7 @@ sequenceDiagram
 
 *Hình 7: Processor `sync` resolve input, gọi service contract và chuẩn bị response*
 
-**Chúng ta có thể overrider params trong DI.**
+**Chúng ta có thể override params trong DI.**
 
 ```xml
 <!-- Magento/Quote/etc/di.xml (global) -->
@@ -579,9 +583,9 @@ Delivers the schema needed for generating Swagger documentation.
 #### async
 
 - Class: `Magento\WebapiAsync\Controller\Rest\AsynchronousRequestProcessor`
-- URL pattern: `/^\\/async(\\/V.+)/`
+- URL pattern: `/^\/async(\/V.+)/`
 - Order: 150
-- Config: route trong `webapi.xml`. `Magento\WebapiAsync\Model\Config` tự sinh endpoint async (topic `async.<interface>.<method>.<HTTP>`) cho **mọi route non-GET**. `webapi_async.xml` là tuỳ chọn, chỉ để khai alias route. Core có 2 alias: `POST async/V1/products` → `asyncProducts` (`Magento/WebapiAsync/etc/webapi_async.xml`) và `PUT async/bulk/V1/products/bySku` → `async/bulk/V1/products` (`Magento/Catalog/etc/webapi_async.xml`).
+- Config: route trong `webapi.xml`. `Magento\WebapiAsync\Model\Config` tự sinh endpoint async cho **mọi route non-GET**, với topic dạng `async.<interface FQCN viết thường, \ thay bằng .>.<method>.<http method>`, VD `async.magento.catalog.api.productrepositoryinterface.save.post`. `webapi_async.xml` là tuỳ chọn, chỉ để khai alias route. Core có 2 alias: `POST async/V1/products` → `asyncProducts` (`Magento/WebapiAsync/etc/webapi_async.xml`) và `PUT async/bulk/V1/products/bySku` → `async/bulk/V1/products` (`Magento/Catalog/etc/webapi_async.xml`).
 
 > [!WARNING]
 > GET không hỗ trợ async: `AsynchronousRequestProcessor::canProcess()` trả false cho GET, nên request `GET /async/V1/...` bị pool trả 400 "Specified request cannot be processed."
@@ -603,7 +607,7 @@ Delivers the schema needed for generating Swagger documentation for asynchronous
 #### asyncBulk
 
 - Class: `Magento\WebapiAsync\Controller\Rest\VirtualType\AsynchronousBulkRequestProcessor`
-- URL pattern: `/^\\/async\/bulk(\\/V.+)/`
+- URL pattern: `/^\/async\/bulk(\/V.+)/`
 - Order: 200
 - Config: giống `async`, tự sinh từ route non-GET trong `webapi.xml`
 

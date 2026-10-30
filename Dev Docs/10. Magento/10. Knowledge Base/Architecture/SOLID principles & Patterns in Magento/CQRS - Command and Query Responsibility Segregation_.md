@@ -5,7 +5,7 @@ scope: backend
 status: current
 author: magento-team@
 owner: magento-team@
-updated: 2026-10-28
+updated: 2026-10-30
 tags: [design-pattern, cqrs, architecture]
 ---
 
@@ -62,7 +62,7 @@ Service contract tách rõ method ghi và method đọc:
 - Đọc: `get()`, `getById()`, `getList(SearchCriteriaInterface $searchCriteria)`.
 - `Magento\Framework\Api\SearchCriteriaBuilder` + `FilterBuilder`/`SortOrderBuilder` mô tả query; `Magento\Framework\Api\SearchCriteria\CollectionProcessorInterface` áp dụng vào collection.
 
-Đây là **CQS**, không phải CQRS: cả đọc và ghi vẫn dùng chung model/resource model/bảng.
+Đây là tinh thần **CQS** (và cũng không chặt: `save()` trả về `ProductInterface` đã lưu, `delete()` trả `bool`), không phải CQRS: cả đọc và ghi vẫn dùng chung model/resource model/bảng.
 
 ### 4.2. Indexer, flat table, grid table (read model – thực tế trong core)
 
@@ -92,7 +92,7 @@ MSI thiết kế mỗi service là một interface một method `execute()`, chi
 | `Magento\InventoryReservationsApi\Model\AppendReservationsInterface::execute(array $reservations): void` | `Magento\InventorySalesApi\Api\IsProductSalableInterface::execute(string $sku, int $stockId): bool` |
 
 - Khi đặt hàng, MSI **không trừ trực tiếp** source item mà append một reservation (bảng `inventory_reservation`, append-only, immutable).
-- Salable qty = qty trong stock index (`inventory_stock_<id>`, read model do indexer build) + tổng reservations (`GetReservationsQuantityInterface`, reservation khi đặt hàng mang giá trị âm) − Out-of-Stock Threshold (`min_qty`), xem `Magento\InventorySales\Model\GetProductSalableQty::execute()`. Nếu stock item không salable thì trả `0`.
+- Salable qty = qty trong stock index (`inventory_stock_<id>`, read model do indexer build; riêng Default Stock đọc bảng legacy `cataloginventory_stock_status`, `inventory_stock_1` chỉ là view) + tổng reservations (`GetReservationsQuantityInterface`, reservation khi đặt hàng mang giá trị âm) − Out-of-Stock Threshold (`min_qty`), xem `Magento\InventorySales\Model\GetProductSalableQty::execute()`. Nếu stock item không salable thì trả `0`.
 - Source deduction thực sự xảy ra khi tạo shipment, sau đó reservation bù trừ được ghi thêm → đây là mô hình rất gần CQRS + append-only log.
 
 ```mermaid
@@ -118,7 +118,7 @@ flowchart TD
 
 - `POST /rest/async/V1/products`, `/rest/async/bulk/V1/products`: request ghi được đẩy vào message queue, trả ngay `bulk_uuid`; consumer `async.operations.all` (`Magento\AsynchronousOperations\Model\MassConsumer`) xử lý sau.
 - Đọc trạng thái qua query riêng: `GET /rest/V1/bulk/{bulkUuid}/status`.
-- Tầng PHP: `Magento\AsynchronousOperations\Model\MassSchedule::publishMass()` (dùng qua virtualType `Magento\WebapiAsync\Model\MassSchedule`) gọi `Magento\Framework\Bulk\BulkManagementInterface::scheduleBulk()`; impl `Magento\AsynchronousOperations\Model\BulkManagement` lưu bulk + operations rồi tự publish qua `Magento\Framework\MessageQueue\BulkPublisherInterface::publish()` (không phải `PublisherInterface`).
+- Tầng PHP: `Magento\AsynchronousOperations\Model\MassSchedule::publishMass()` (dùng qua virtualType `Magento\WebapiAsync\Model\MassSchedule`; bulk: `Magento\WebapiAsync\Model\Bulk\MassSchedule`) gọi `Magento\Framework\Bulk\BulkManagementInterface::scheduleBulk()`; impl `Magento\AsynchronousOperations\Model\BulkManagement` lưu bulk + operations rồi tự publish qua `Magento\Framework\MessageQueue\BulkPublisherInterface::publish()` (không phải `PublisherInterface`).
 
 ## 5. Ví dụ code – tách command/query trong module
 

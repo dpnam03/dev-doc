@@ -5,7 +5,7 @@ scope: backend
 status: current
 author: magento-team@
 owner: magento-team@
-updated: 2026-10-21
+updated: 2026-10-30
 tags: [reflection, data-interface, data-object, webapi]
 ---
 
@@ -17,8 +17,8 @@ tags: [reflection, data-interface, data-object, webapi]
 
 Trong ngữ cảnh "DB & Data Object", **Reflection** là bộ công cụ trong namespace `Magento\Framework\Reflection\*` giúp Magento **đọc cấu trúc của Data Interface** (method, kiểu trả về trong PHPDoc, tham số) để tự động:
 
-- **Serialize** Data Object → mảng (output của REST/SOAP, `toArray` của service contract).
-- **Deserialize** mảng/JSON → Data Object (input của REST/SOAP, `DataObjectHelper::populateWithArray`).
+- **Serialize** Data Object → mảng (output của REST/SOAP, `ExtensibleDataObjectConverter::toNestedArray()`/`toFlatArray()`).
+- **Deserialize** mảng/JSON → Data Object: input REST/SOAP qua `ServiceInputProcessor::process()`; trong code module dùng `DataObjectHelper::populateWithArray()`.
 - Sinh WSDL/schema cho Web API.
 
 Nhờ vậy dev chỉ cần khai báo interface `Api/Data/*Interface` với getter/setter + PHPDoc đúng chuẩn; không phải viết mapper thủ công.
@@ -171,7 +171,7 @@ Khác biệt với `$model->getData()`: `getData()` trả **mọi** key trong `_
 - Mọi getter của Data Interface phải có `@return` chính xác; thiếu/sai → lỗi khi gọi API (Web API không suy được type) hoặc field bị cast sai.
 - Getter có tham số **bắt buộc** (`getFoo($storeId)`) bị **bỏ qua** khi serialize (tham số có default value thì vẫn được gọi).
 - Không đặt method helper bắt đầu bằng `get`/`is`/`has` trong Data Interface nếu không muốn nó xuất hiện trong output.
-- Giá trị `null` của getter không bắt buộc sẽ bị lược khỏi output.
+- Getter khai báo `@return type|null` mà trả `null` sẽ bị lược khỏi output; nếu `@return` không có `null` thì key vẫn xuất hiện với giá trị `null`.
 - Reflection runtime (`\ReflectionClass`) tốn chi phí – dựa vào `MethodsMap` (đã cache) thay vì tự reflect trong vòng lặp.
 - Extension attribute có khai báo `<resources>` ACL chỉ được serialize khi user API có quyền tương ứng.
 

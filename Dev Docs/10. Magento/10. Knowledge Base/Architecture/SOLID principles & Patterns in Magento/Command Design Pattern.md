@@ -5,7 +5,7 @@ scope: backend
 status: current
 author: magento-team@
 owner: magento-team@
-updated: 2026-10-28
+updated: 2026-10-30
 tags: [design-pattern, command, behavioral]
 ---
 
@@ -338,7 +338,7 @@ Ngoài ra, phía Sales cũng có `Magento\Sales\Model\Order\Payment\State\Comman
 
 ### 4.4. Controller – `execute()` (phép so sánh)
 
-`Magento\Framework\App\ActionInterface::execute()`: FrontController (Invoker) chọn action theo route rồi gọi `execute()`. Mỗi controller = một request được đóng gói thành class. Đây là cách tổ chức *giống* Command (một class – một hành động – một method), không có queue/undo.
+`Magento\Framework\App\ActionInterface::execute()`: `FrontController` (Invoker) duyệt `RouterList`, router `match()` trả về action theo route, rồi FrontController gọi `execute()`. Mỗi controller = một request được đóng gói thành class. Đây là cách tổ chức *giống* Command (một class – một hành động – một method), không có queue/undo.
 
 ## 5. Ví dụ code – console command
 

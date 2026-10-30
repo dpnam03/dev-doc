@@ -5,7 +5,7 @@ scope: backend
 status: current
 author: magento-team@
 owner: magento-team@
-updated: 2026-10-28
+updated: 2026-10-30
 tags: [design-pattern, iterator, behavioral]
 ---
 
@@ -40,9 +40,11 @@ Cách thức hoạt động của Iterator Pattern:
 Magento không tự viết Iterator interface riêng mà dùng interface built-in của PHP (`\Iterator`, `\IteratorAggregate`) – client chỉ cần `foreach`. Một số chỗ áp dụng trong source:
 
 - **Duyệt qua các Collection:** `Magento\Framework\Data\Collection` implement `\IteratorAggregate` và `\Countable`; mọi collection (sản phẩm, đơn hàng…) kế thừa nó nên được duyệt nhất quán bằng `foreach`, không phụ thuộc vào cách dữ liệu được load (xem Hình 1).
-- **Duyệt qua các Block trong Layout:** Layout **không** dùng Iterator – cây block được lưu bằng mảng trong `Magento\Framework\View\Layout\Data\Structure` (kế thừa `Magento\Framework\Data\Structure`) và được duyệt qua `Magento\Framework\View\Layout::getChildNames()`. Đây chỉ là ví dụ minh họa ý tưởng, không phải cách Magento cài đặt.
 - **Duyệt qua các file config của Module:** Khi đọc `di.xml`, `events.xml`… của mọi module, `Magento\Framework\App\Config\FileResolver::get()` trả về `Magento\Framework\Config\FileIterator` (implement `\Iterator`, `\Countable`) để reader `foreach` qua từng file.
 - **Duyệt qua các phần tử trong Composite Pattern:** Khi các đối tượng được tổ chức theo dạng cấu trúc cây phân cấp, bạn có thể dùng iterator để duyệt các phần tử trong cấu trúc này, ví dụ `Magento\Framework\Data\Tree\Node::getChildren()` trả về `Magento\Framework\Data\Tree\Node\Collection` (implement `\IteratorAggregate`).
+
+> [!NOTE]
+> Cây block của Layout **không** dùng Iterator: `Magento\Framework\View\Layout\Data\Structure` (kế thừa `Magento\Framework\Data\Structure`) lưu bằng mảng và được duyệt qua `Magento\Framework\View\Layout::getChildNames()`.
 
 ```mermaid
 classDiagram

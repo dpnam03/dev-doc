@@ -5,7 +5,7 @@ scope: backend
 status: current
 author: magento-team@
 owner: magento-team@
-updated: 2026-10-28
+updated: 2026-10-30
 tags: [design-pattern, strategy, behavioral]
 ---
 
@@ -17,7 +17,7 @@ tags: [design-pattern, strategy, behavioral]
 
 Strategy pattern là một mẫu thiết kế để xử lý hành vi (Behavioral Design Patterns), khi tập hợp các objects có thể thực hiện hoán đổi cho nhau để xử lý một action nào đấy. Khi đó bạn dễ dàng thay đổi hành vi của đối tượng ban đầu
 
-Strategy giúp tách riêng hành động thành riêng biệt, ko ảnh hưởng đến chương trình gốc.
+Strategy giúp tách riêng hành động thành riêng biệt, không ảnh hưởng đến chương trình gốc.
 
 **Ví dụ:**
 
@@ -33,7 +33,7 @@ Strategy giúp tách riêng hành động thành riêng biệt, ko ảnh hưởn
 
 ### Ví dụ PHP – Strategy (Refactoring.Guru)
 
-Conceptual example của [Refactoring.Guru – Strategy in PHP](https://refactoring.guru/design-patterns/strategy/php/example) (© Alexander Shvets, CC BY-NC-ND 4.0). `Context` giữ một `Strategy` và có thể đổi lúc runtime qua `setStrategy()`; `ConcreteStrategyA/B` cài đặt cùng thuật toán theo hai cách (sắp xếp xuôi / ngược).
+Conceptual example của [Refactoring.Guru – Strategy in PHP](https://refactoring.guru/design-patterns/strategy/php/example) (© Alexander Shvets, CC BY-NC-ND 4.0). `Context` giữ một `Strategy` và có thể đổi lúc runtime qua `setStrategy()`; `ConcreteStrategyA/B` cài đặt cùng thuật toán theo hai cách (sắp xếp xuôi / ngược). Trong Magento (mục 2): `Context` ↔ `AbstractDb`, `Strategy` ↔ `FetchStrategyInterface`, `ConcreteStrategyA/B` ↔ `FetchStrategy\Query` / `FetchStrategy\Cache`; strategy được đổi bằng argument `fetchStrategy` trong di.xml thay vì `setStrategy()`.
 
 ```php
 <?php
@@ -164,9 +164,10 @@ classDiagram
     AbstractDb o-- FetchStrategyInterface : fetchStrategy
     FetchStrategyInterface <|.. Query
     FetchStrategyInterface <|.. Cache
+    Cache o-- FetchStrategyInterface : _fetchStrategy (mặc định Query)
 ```
 
-*Hình 2: Strategy trong `Magento\Framework\Data\Collection\AbstractDb` – collection gọi `$this->_fetchStrategy->fetchAll()`; `app/etc/di.xml` chọn mặc định `FetchStrategy\Query`, còn virtualType (vd. `Magento\Store\Model\ResourceModel\Group\Collection\FetchStrategy`) dùng `FetchStrategy\Cache` để đọc từ cache trước khi query DB*
+*Hình 2: Strategy trong `Magento\Framework\Data\Collection\AbstractDb` – collection gọi `$this->_fetchStrategy->fetchAll()`; `app/etc/di.xml` chọn mặc định `FetchStrategy\Query`, còn virtualType (vd. `Magento\Store\Model\ResourceModel\Group\Collection\FetchStrategy`) dùng `FetchStrategy\Cache` để đọc từ cache trước khi query DB. `FetchStrategy\Cache` bọc một strategy khác (mặc định `Query`): cache miss thì gọi strategy bên trong rồi lưu kết quả vào cache – Strategy kết hợp Decorator*
 
 ## Tham khảo
 

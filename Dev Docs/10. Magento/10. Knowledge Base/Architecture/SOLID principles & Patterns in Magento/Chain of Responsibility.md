@@ -5,7 +5,7 @@ scope: backend
 status: current
 author: magento-team@
 owner: magento-team@
-updated: 2026-10-28
+updated: 2026-10-30
 tags: [design-pattern, chain-of-responsibility, behavioral]
 ---
 
@@ -15,7 +15,7 @@ tags: [design-pattern, chain-of-responsibility, behavioral]
 
 ## 1. Tổng quan
 
-Chain of Responsibility là một behavioral design pattern
+Chain of Responsibility là một behavioral design pattern cho phép chuyển request dọc theo một chuỗi các handler.
 
 ![Request đi qua một khối kiểm tra phức tạp gồm Authentication, Authorization, Validation, Caching trước khi tới Ordering System](images/chain-of-responsibility/image-01.png)
 
@@ -25,8 +25,6 @@ Chain of Responsibility là một behavioral design pattern
 
 *Hình 2: Giải pháp Chain of Responsibility – mỗi Handler xử lý một bước, có thể dừng request hoặc chuyển cho handler kế tiếp*
 
-Chain of Responsibility
-
 Mẫu này khá phổ biến trong Magento, magento thường sử dụng handler như một processor
 
 **Ví dụ – Sử dụng trong việc xử lý các phụ thuộc:**
@@ -34,12 +32,15 @@ Mẫu này khá phổ biến trong Magento, magento thường sử dụng handle
 ```php
 // Magento\Framework\Model\ResourceModel\Db\VersionControl\RelationComposite::processRelations()
 foreach ($this->relationProcessors as $processor) {
-    /**@var $processor RelationInterface*/
     $processor->processRelation($object);
 }
+$this->eventManager->dispatch(
+    $object->getEventPrefix(). '_process_relation',
+    [
+        'object' => $object
+    ]
+);
 ```
-
-tương tự
 
 ## 2. Cách thức hoạt động
 
@@ -54,7 +55,7 @@ Cách thức hoạt động của Chain of Responsibility Pattern:
 3. Quá trình này tiếp tục cho đến khi có một handler xử lý được yêu cầu hoặc đến cuối chuỗi.
 
 > [!NOTE]
-> Refactoring.Guru mô tả hai biến thể: (1) mỗi handler xử lý rồi chuyển tiếp, request đi hết chuỗi; (2) biến thể "canonical" – handler nào xử lý được thì **dừng**, không chuyển tiếp nữa. Các ví dụ dạng `foreach` trong Magento (`RelationComposite::processRelations()`, `QuoteValidationComposite::validate()`) thuộc biến thể (1): handler được inject thành mảng qua `di.xml`, không có link "next", **mọi** handler đều chạy và không handler nào dừng được chuỗi (trừ khi throw exception). Biến thể (2) gần với chuỗi plugin `around` hơn: `Interceptor::___callPlugins()` truyền closure `$next` (`$proceed`) cho plugin, plugin không gọi `$proceed()` thì các plugin sau và method gốc bị bỏ qua.
+> Refactoring.Guru mô tả hai biến thể: (1) mỗi handler xử lý phần của mình rồi chuyển tiếp, nhưng vẫn có thể quyết định không chuyển tiếp để dừng chuỗi; (2) biến thể "canonical" – handler nào xử lý được thì **dừng**, không chuyển tiếp nữa. Các ví dụ dạng `foreach` trong Magento (`RelationComposite::processRelations()`, `QuoteValidationComposite::validate()`) gần với biến thể (1), nhưng vì handler được inject thành mảng qua `di.xml` và không có link "next", **mọi** handler đều chạy và không handler nào dừng được chuỗi (trừ khi throw exception). Biến thể (2) gần với chuỗi plugin `around` hơn: `Interceptor::___callPlugins()` truyền closure `$next` (`$proceed`) cho plugin, plugin không gọi `$proceed()` thì các plugin sau và method gốc bị bỏ qua.
 
 ### Ví dụ PHP – Chain of Responsibility (Refactoring.Guru)
 
@@ -194,11 +195,11 @@ clientCode($squirrel);
 
 Mẫu thiết kế này khá phổ biến trong Magento, Magento thường sử dụng handler như một processor.
 
-- **Xử lý các phụ thuộc:** Magento sử dụng Chain of Responsibility để lưu các entity phụ thuộc (child entity) của một model. Ví dụ, khi lưu một order, virtualType `OrderRelationsComposite` chạy lần lượt `Magento\Sales\Model\ResourceModel\Order\Relation` (lưu item, payment, status history, related objects, address) và `Magento\Tax\Model\ResourceModel\Sales\Order\Relation` (applied taxes). Gửi email xác nhận hay trừ kho **không** nằm trong chuỗi này – email được gửi bởi observer `Magento\Quote\Observer\SubmitObserver` trên event `sales_model_service_quote_submit_success`.
+- **Xử lý các phụ thuộc:** Magento sử dụng Chain of Responsibility để lưu các entity phụ thuộc (child entity) của một model. Ví dụ, khi lưu một order, virtualType `OrderRelationsComposite` chạy lần lượt `Magento\Sales\Model\ResourceModel\Order\Relation` (lưu item, payment, status history, related objects, address) và `Magento\Tax\Model\ResourceModel\Sales\Order\Relation` (applied taxes). Gửi email xác nhận hay trừ kho **không** nằm trong chuỗi này – email được gửi bởi observer `Magento\Quote\Observer\SubmitObserver` trên event `sales_model_service_quote_submit_success` (đăng ký ở area frontend, webapi_rest, webapi_soap, graphql); đơn tạo từ admin gửi email trong `Magento\Sales\Model\AdminOrder\Create`.
 - **Validation:** Chain of Responsibility có thể được sử dụng để thực hiện một loạt các validation cho một đối tượng. Mỗi handler sẽ chịu trách nhiệm cho một loại validation cụ thể. Ví dụ trong `Magento\Quote\Model\ValidationRules\QuoteValidationComposite`, mỗi validationRule sẽ validate trên quote và trả về kết quả, nếu có bất kỳ validationRule nào không đúng, sẽ trả về kết quả lỗi.
 - **Các Relation Processor:** Magento sử dụng Chain of Responsibility trong việc xử lý các relation giữa các đối tượng. Ví dụ:
   - Mỗi `RelationInterface` là một handler, chịu trách nhiệm xử lý một loại relation cụ thể.
-- **Authentication, Authorization, Validation và Caching:** Mô hình này có thể được sử dụng để xử lý một chuỗi các tác vụ như xác thực, ủy quyền, kiểm tra dữ liệu và lưu cache.
+- **Authentication, Authorization, Validation và Caching:** Mô hình này có thể được sử dụng để xử lý một chuỗi các tác vụ như xác thực, ủy quyền, kiểm tra dữ liệu và lưu cache (ví dụ minh họa của Refactoring.Guru ở Hình 1–2, không phải một class cụ thể trong Magento).
 - **Plugin Interceptors:** Mặc dù không phải là Chain of Responsibility thuần túy, plugin interceptor trong Magento cũng hoạt động theo một cách tương tự. Các plugin có thể can thiệp vào trước, sau hoặc xung quanh một method, tạo thành một chuỗi các hành động
 
 ```mermaid

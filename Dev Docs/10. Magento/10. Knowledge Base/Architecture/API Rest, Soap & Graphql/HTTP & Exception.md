@@ -5,7 +5,7 @@ scope: backend
 status: current
 author: magento-team@
 owner: magento-team@
-updated: 2026-10-20
+updated: 2026-10-30
 tags: [api, http, exception, error-handling]
 ---
 
@@ -53,7 +53,7 @@ Mỗi HTTP sẽ bao gồm:
 
 ### 1.1. Request
 
-Các yêu cầu được gửi từ phía client,  với Magento HTTP Request  được base từ `\Laminas\Http\PhpEnvironment\Request`
+Các yêu cầu được gửi từ phía client, với Magento HTTP Request được base từ `\Laminas\Http\PhpEnvironment\Request`
 
 Request sẽ xử lý validate, cookies, header, allow-deny access, parse input body, parse query, match url, cache … Ta có thể thấy cách magento xử lý Request App bên trong `magento/framework`
 
@@ -106,9 +106,7 @@ Tại `Magento\Framework\App\Response\Http` (dùng cho storefront, admin và Gra
 > [!NOTE]
 > REST/SOAP dùng `Magento\Framework\Webapi\Response`, không kế thừa `App\Response\Http` nên không có cookie `X-Magento-Vary`. Response của REST/SOAP luôn bị gắn `Cache-Control: no-store` bởi plugin `Magento\PageCache\Plugin\AppendNoStoreCacheHeader` (xem [REST](REST.md)).
 
-Và, Redirect Url
-
-Format content response & exception data response
+Ngoài ra Response còn xử lý redirect (`setRedirect()`, `Magento\Framework\App\Response\RedirectInterface`) và format nội dung trả về, kể cả dữ liệu lỗi (với REST là `Magento\Framework\Webapi\Rest\Response::_renderMessages()`).
 
 ### 1.3. HTTP Status
 

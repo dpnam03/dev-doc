@@ -5,7 +5,7 @@ scope: backend
 status: current
 author: magento-team@
 owner: magento-team@
-updated: 2026-10-28
+updated: 2026-10-30
 tags: [design-pattern, factory, creational]
 ---
 
@@ -17,9 +17,7 @@ tags: [design-pattern, factory, creational]
 
 `Factory Method` Design Pattern là một creational design pattern cung cấp một interface cho quá trình khởi tạo object ở superclass (Creator), nhưng cho phép **subclass** (ConcreteCreator) override để quyết định loại object cụ thể được tạo (xem Hình 2).
 
-Factory pattern sẽ định nghĩa một phương thức khởi tạo ảo
-
-‘virtual constructor’ tại đây sẽ định nghĩa trước các config, các dữ liệu cần trong quá trình khởi tạo.(thay vì gọi trực tiếp toán tử `new` để khởi tạo object)
+Factory Method còn được gọi là **Virtual Constructor**: thay vì gọi trực tiếp toán tử `new`, code gọi một method tạo object; subclass override method này để quyết định class cụ thể được tạo. Việc gom sẵn tham số/config dùng chung là lợi ích phụ, không phải định nghĩa của pattern.
 
 Tránh sử dụng trực tiếp toán tử `new`
 

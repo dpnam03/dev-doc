@@ -5,7 +5,7 @@ scope: backend
 status: current
 author: magento-team@
 owner: magento-team@
-updated: 2026-10-28
+updated: 2026-10-30
 tags: [design-pattern, object-pool, creational]
 ---
 
@@ -17,9 +17,9 @@ tags: [design-pattern, object-pool, creational]
 
 Object pool pattern được sử dụng để quản lý và caching object. Object pool giúp tăng hiệu suất quá trình khởi tạo objects trong ứng dụng.
 
-Object Pool giúp tận dụng lại Config, Context, … or reuse Object.
+Object Pool giúp tái sử dụng các shared object như Config, Context…
 
-Object pool được sử dụng vào Magento đẻ build Object Manager.
+Magento không có Object Pool đúng nghĩa; ObjectManager dùng ý tưởng gần giống (cache và tái sử dụng shared instance trong `$_sharedInstances`) – xem NOTE bên dưới.
 
 > [!NOTE]
 > Object Pool không phải pattern GoF. Theo [SourceMaking – Object Pool](https://sourcemaking.com/design_patterns/object_pool), client **acquire** một object từ pool, dùng riêng, rồi **release** trả lại pool để client khác dùng lại; pool có `acquire()`/`release()` và dọn object không dùng. `ObjectManager` của Magento không có acquire/release: `get()` trả về **cùng một** instance trong `$_sharedInstances` cho mọi client cùng lúc và không bao giờ trả lại – Adobe gọi đây là "implementing the singleton pattern by returning the same shared instance" ([ObjectManager](https://developer.adobe.com/commerce/php/development/components/object-manager/)). Vì vậy hiểu ObjectManager là một *cache/registry các shared instance* có ý tưởng giống pool (tái sử dụng object), chứ không phải Object Pool đúng nghĩa.

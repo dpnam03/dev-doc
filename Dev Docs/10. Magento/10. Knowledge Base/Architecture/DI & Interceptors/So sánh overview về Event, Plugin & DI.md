@@ -5,7 +5,7 @@ scope: backend
 status: current
 author: magento-team@
 owner: magento-team@
-updated: 2026-10-22
+updated: 2026-10-30
 tags: [di, plugin, event, observer, extensibility]
 ---
 
@@ -95,7 +95,7 @@ DI phù hợp với việc customize các service contract, và sửa các hệ 
 
 ## 3. Plugin – interceptors
 
-Plugin sẽ thực hiện một interceptor lên object gốc, yếu điểm sẽ là performance và hành vi của method gốc sẽ bị thay đổi. Magento sinh class `<Class>\Interceptor` **extends** class gốc vào `generated/code` (`Magento\Framework\Interception\Code\Generator\Interceptor`), override các public method có plugin để gọi chuỗi plugin; ObjectManager trả về instance của Interceptor thay cho class gốc. Code của class gốc không bị sửa.
+Plugin sẽ thực hiện một interceptor lên object gốc, yếu điểm sẽ là performance và hành vi của method gốc sẽ bị thay đổi. Magento sinh class `<Class>\Interceptor` **extends** class gốc vào `generated/code` (`Magento\Framework\Interception\Code\Generator\Interceptor`), override **tất cả** public method (trừ `__construct`, final, static…); mỗi method kiểm tra lúc runtime qua `PluginList::getNext()`: có plugin thì gọi `___callPlugins()`, không thì gọi thẳng `parent::method()`; ObjectManager trả về instance của Interceptor thay cho class gốc. Code của class gốc không bị sửa.
 
 ![Mô hình interceptor chung: request từ client đi qua PreHandle, PostHandle, AfterCompletion trước khi tới server và trả response](images/so-sanh-overview-ve-event-plugin-di/image-03.png)
 
@@ -155,6 +155,7 @@ flowchart TD
     C -- Có --> D["DI – preference cho interface"]
     C -- Không --> P{"Sửa đổi function cũ,<br/>nhiều extension cùng tác động?"}
     P -- Có --> F["Plugin – ưu tiên plugin tới interface"]
+    P -- Không --> F2["Plugin (before/after) – cân nhắc around"]
 ```
 
 *Hình 6: Tóm tắt cách lựa chọn giữa Event, DI và Plugin theo nội dung bài*

@@ -5,7 +5,7 @@ scope: backend
 status: current
 author: magento-team@
 owner: magento-team@
-updated: 2026-10-29
+updated: 2026-10-30
 tags: [service-contract, api, repository, data-interface]
 ---
 
@@ -38,7 +38,7 @@ flowchart TD
 
 Vì sao Magento đưa ra service contracts:
 
-- **Backward compatibility (BC)**: interface đánh dấu `@api` được Adobe cam kết **không có thay đổi phá vỡ BC trong các bản patch (2.4.x)**; bản minor (VD 2.4 → 2.5) vẫn có thể có thay đổi cần thiết, kèm deprecation trước → extension ít vỡ khi upgrade.
+- **Backward compatibility (BC)**: interface đánh dấu `@api` được Adobe **cố gắng giữ BC trong các bản patch (2.4.x)**; ngoại lệ có thể có thay đổi phá vỡ BC vì lý do bảo mật/compliance (luôn được liệt kê ở trang [Backward-incompatible changes](https://developer.adobe.com/commerce/php/development/backward-incompatible-changes/highlights/) của từng release). Bản minor (VD 2.4 → 2.5) có thể có thay đổi phá vỡ BC, kèm deprecation trước → extension ít vỡ khi upgrade.
 - **Ẩn chi tiết lưu trữ**: một entity có thể nằm trên nhiều bảng EAV, nhưng data interface chỉ phơi ra một model đơn giản.
 - **Expose Web API gần như miễn phí**: khai báo `webapi.xml` trỏ tới service interface là có REST + SOAP endpoint (xem [REST](API%20Rest%2C%20Soap%20%26%20Graphql/REST.md)).
 - **Thay thế implementation dễ dàng** qua `di.xml` `<preference>` (xem [Object Manager](Object%20Manager.md)).
@@ -401,6 +401,9 @@ sequenceDiagram
 
 *Hình 2: REST request gọi service contract – `SynchronousRequestProcessor` resolve input, gọi interface và serialize output*
 
+> [!NOTE]
+> Sơ đồ đã giản lược: trước khi tới processor, `Rest::dispatch()` gọi `requestValidator->validate()` rồi mới lấy processor qua `requestProcessorPool->getProcessor()->process()`.
+
 **Ví dụ:** sử dụng repository + SearchCriteria trong code khác
 
 ```php
@@ -438,7 +441,7 @@ curl -H "Authorization: Bearer <admin_token>" \
 ## 4. Best practices & lưu ý
 
 - Code ngoài module (controller, plugin, module khác) **inject interface**, không inject Model/ResourceModel/Collection.
-- PHPDoc `@param` / `@return` của service/data interface là nguồn type cho Web API (`Magento\Framework\Reflection\TypeProcessor`) → phải chính xác, kiểu mảng ghi dạng `\Vendor\Module\Api\Data\BrandInterface[]`. Nên dùng **FQCN đầy đủ** như convention của core để tránh lỗi resolve type.
+- PHPDoc `@param` / `@return` của service/data interface là nguồn type cho Web API (`Magento\Framework\Reflection\TypeProcessor`) → phải chính xác, kiểu mảng ghi dạng `\Vendor\Module\Api\Data\BrandInterface[]`. Kiểu trong `@return` của getter **bắt buộc** ghi FQCN (`\Vendor\Module\Api\Data\BrandInterface`) vì `TypeProcessor` chỉ resolve alias `use` cho `@param`, không resolve cho `@return` → cứ ghi **FQCN đầy đủ** cho cả hai như convention của core.
 - Repository không nên chứa nghiệp vụ phức tạp → tách sang `*ManagementInterface`.
 - `getById()` throw `NoSuchEntityException` thay vì trả `null` (Web API map thành HTTP 404).
 - Không dùng `$model->load()` / `save()` trực tiếp từ bên ngoài (deprecated pattern) – dùng repository.

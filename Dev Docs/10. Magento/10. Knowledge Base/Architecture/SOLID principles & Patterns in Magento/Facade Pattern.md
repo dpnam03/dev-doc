@@ -5,7 +5,7 @@ scope: backend
 status: current
 author: magento-team@
 owner: magento-team@
-updated: 2026-10-28
+updated: 2026-10-30
 tags: [design-pattern, facade, structural]
 ---
 
@@ -21,7 +21,7 @@ Mô hình Facade là một mẫu thiết kế thuộc nhóm structural design pa
 
 Cách thức hoạt động của Facade Pattern:
 
-- **Facade (lớp Facade):** Lớp này cung cấp một giao diện đơn giản để tương tác với các lớp con phức tạp của một hệ thống con. Nó đóng vai trò như một điểm truy cập duy nhất cho các client muốn sử dụng hệ thống con đó.
+- **Facade (lớp Facade):** Lớp này cung cấp một giao diện đơn giản để tương tác với các lớp của hệ thống con (subsystem). Nó là điểm truy cập thuận tiện cho phần lớn client, nhưng không cấm client gọi thẳng subsystem khi cần tính năng nâng cao.
 - **Subsystem Classes (các lớp hệ thống con):** Đây là các lớp thực hiện các tác vụ phức tạp của hệ thống. Client không cần phải tương tác trực tiếp với các lớp này mà sẽ thông qua lớp Facade.
 
 ### Ví dụ PHP – Facade (Refactoring.Guru)
@@ -156,10 +156,10 @@ Hãy tưởng tượng bạn muốn đặt một ly cà phê. Thay vì phải l�
 
 Magento có chỗ gọi thẳng tên Facade, và một số khu vực khác cũng có thể hiểu theo tinh thần Facade:
 
-- **Payment method facade (gọi đích danh trong source và Adobe docs):** `Magento\Payment\Model\Method\Adapter` có docblock *"Payment method facade. Abstract method adapter"* và được dùng làm base cho các `virtualType` tên `...Facade`. Sales/Checkout chỉ gọi `MethodInterface` (`authorize()`, `capture()`, `isAvailable()`…); Adapter che giấu `valueHandlerPool`, `validatorPool`, `commandPool` (gateway command, request builder, HTTP client, response handler) bên dưới. Xem [Payment method facade](https://developer.adobe.com/commerce/php/development/payments-integrations/base-integration/facade-configuration/).
+- **Payment method facade (gọi đích danh trong source và Adobe docs):** `Magento\Payment\Model\Method\Adapter` có docblock *"Payment method facade. Abstract method adapter"* và được dùng làm base cho các `virtualType` tên `...Facade`. Sales/Checkout chỉ gọi `MethodInterface` (`authorize()`, `capture()`, `isAvailable()`…); Adapter che giấu `valueHandlerPool`, `validatorPool`, `commandPool` (gateway command, request builder, HTTP client, response handler) bên dưới. Xem [Payment method facade](https://developer.adobe.com/commerce/php/development/payments-integrations/base-integration/facade-configuration).
 
   ```xml
-  <!-- Magento/PaymentServicesPaypal/etc/di.xml -->
+  <!-- Magento/PaymentServicesPaypal/etc/di.xml (bundled extension Payment Services, không thuộc core magento2) -->
   <virtualType name="PaymentServicesPaypalHostedFieldsFacade" type="Magento\Payment\Model\Method\Adapter">
       <arguments>
           <argument name="code" xsi:type="const">Magento\PaymentServicesPaypal\Model\HostedFieldsConfigProvider::CODE</argument>
@@ -209,7 +209,7 @@ classDiagram
 **Tài liệu chính thức**
 - [Service contracts](https://developer.adobe.com/commerce/php/development/components/service-contracts/)
 - [Service layer](https://developer.adobe.com/commerce/php/architecture/layers/service)
-- [Payment method facade](https://developer.adobe.com/commerce/php/development/payments-integrations/base-integration/facade-configuration/)
+- [Payment method facade](https://developer.adobe.com/commerce/php/development/payments-integrations/base-integration/facade-configuration)
 
 **Source code**
 - [`Magento\Catalog\Api\ProductRepositoryInterface`](https://github.com/magento/magento2/blob/2.4-develop/app/code/Magento/Catalog/Api/ProductRepositoryInterface.php)

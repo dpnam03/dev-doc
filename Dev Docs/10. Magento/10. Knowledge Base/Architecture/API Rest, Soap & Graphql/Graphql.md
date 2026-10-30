@@ -5,7 +5,7 @@ scope: backend
 status: current
 author: magento-team@
 owner: magento-team@
-updated: 2026-10-20
+updated: 2026-10-30
 tags: [api, graphql, resolver, schema]
 ---
 
@@ -67,7 +67,7 @@ if ($request->isGet() || $request->isPost()) {
 1. URL `/graphql` được map sang area `graphql` qua `frontName` khai báo cho `Magento\Framework\App\AreaList` trong `Magento/GraphQl/etc/di.xml`, không qua router hay `routes.xml`. Trong area này, `FrontControllerInterface` có preference là `Magento\GraphQl\Controller\GraphQl` (xem [Magento Area](../Magento%20Area%20%26%20Nh%E1%BB%AFng%20g%C3%AC%20Magento%20x%E1%BB%AD%20l%C3%BD%20trong%20m%E1%BB%97i%20area.md)).
 2. Schema từ tất cả `schema.graphqls` được merge và cache trong Configuration cache.
 3. `QueryProcessor` validate (giới hạn depth/complexity – chỉ áp dụng khi không ở developer mode) rồi execute; mỗi field có `@resolver` gọi tới class PHP tương ứng.
-4. Kết quả trả về luôn là JSON `{ "data": ..., "errors": [...] }`.
+4. Body luôn là JSON (`data` và/hoặc `errors`). HTTP status mặc định 200, nhưng là 400 khi lỗi cú pháp hoặc lỗi input lúc parse, 401/403 khi lỗi thuộc category `graphql-authentication` / `graphql-authorization`, và 500 với lỗi khác ném ra trước khi execute.
 
 ```mermaid
 sequenceDiagram
@@ -119,7 +119,7 @@ Directive hay dùng:
 - `@resolver(class: "...")` – class xử lý field.
 - `@doc(description: "...")` – mô tả, hiển thị khi introspection.
 - `@cache(cacheIdentity: "...")` – query được cache, class Identity trả về cache tags.
-- `@cache(cacheable: false)` – tắt cache cho query đã có `cacheIdentity` do module khác khai báo.
+- `@cache(cacheable: false)` – đánh dấu field không được cache. Request chứa field này sẽ bị bỏ cache toàn bộ (core dùng cho `cart`, `customer`).
 - Mở rộng schema module khác: `extend type ProductInterface { ... }`, `extend type Query { ... }`.
 
 ### 2.3. Resolvers
@@ -168,7 +168,7 @@ Thêm dữ liệu vào context:
 
 - Chỉ query gửi bằng **HTTP GET** mới được cache (FPC built-in, Varnish, Fastly). POST và mutation không cache.
 - Query có `@cache(cacheIdentity: ...)` → Identity class implement `Magento\Framework\GraphQl\Query\Resolver\IdentityInterface::getIdentities(array $resolvedData): array` trả về cache tags (VD `cat_p_1`). Khi entity save, tag bị clean → cache invalidated.
-- Nếu một request chứa bất kỳ query không cacheable nào → bỏ qua cache cho cả request.
+- Nếu một request chứa bất kỳ query không cacheable nào → bỏ qua cache cho cả request. "Không cacheable" ở đây là field có `@cache` nhưng `cacheable: false` hoặc thiếu `cacheIdentity`; field **không** khai báo `@cache` thì không ảnh hưởng (`Magento\GraphQlCache\Model\CacheableQueryHandler`).
 - `X-Magento-Cache-Id` (từ 2.4.4): response header là hash theo context customer (store, currency, customer group, …). Client gửi lại header này để Varnish/Fastly cache cho customer đã login. Chỉ tương thích Varnish/Fastly, không dùng tin cậy với built-in FPC. Thêm factor qua argument `idFactorProviders` trong `di.xml`.
 - Ngoài FPC còn có cache type `graphql_query_resolver_result` (xem [Magento Cache](../Magento%20Cache.md)).
 
@@ -206,6 +206,8 @@ Exception trong `Magento\Framework\GraphQl\Exception` (implement `GraphQL\Error\
 
 Exception không phải `ClientAware` chỉ hiện chi tiết ở developer mode; production ghi vào `var/log/exception.log` và trả "Internal server error".
 
+Ngoài developer mode, response chỉ chứa lỗi đầu tiên trong mảng `errors` (vì lý do hiệu năng, xem `Magento\Framework\GraphQl\Query\ErrorHandler::handle()`).
+
 ### 2.8. Query complexity / depth
 
 `Magento\Framework\GraphQl\Query\QueryComplexityLimiter` có 2 argument cấu hình trong `Magento/GraphQl/etc/di.xml`:
@@ -214,6 +216,8 @@ Exception không phải `ClientAware` chỉ hiện chi tiết ở developer mode
 - `queryComplexity` – source 2.4.8-p5 set `1000` (`Magento/GraphQl/etc/di.xml`). Trang [Security configuration](https://developer.adobe.com/commerce/webapi/graphql/usage/security-configuration) của Adobe vẫn ghi 300; giá trị 300 chỉ còn trong `Magento/GraphQlServer/etc/adminhtml/di.xml`.
 
 Limiter này còn gắn rule `DisableIntrospection`, bật bằng `'graphql' => ['disable_introspection' => true]` trong `app/etc/env.php` (`Magento\Framework\GraphQl\Query\IntrospectionConfiguration`). Cả depth, complexity và introspection chỉ được kiểm khi **không** ở developer mode (`QueryProcessor::process()` bỏ qua limiter nếu `ExceptionFormatter::shouldShowDetail()` = true).
+
+Ngoài developer mode, `QueryProcessor::process()` còn kiểm độ dài query, số alias và số field (`validateQueryLength` / `validateAliasCount` / `validateFieldCount`) trước khi chạy limiter.
 
 Override bằng `di.xml` của module custom nếu cần siết lại (chống DoS).
 
@@ -350,7 +354,7 @@ Lỗi không tìm thấy:
 - Resolver nên mỏng: gọi service contract/repository, không viết SQL trong resolver.
 - Field con của list (VD thuộc tính trên từng product) → dùng `BatchResolverInterface` hoặc deferred `Value` để tránh N+1 query.
 - Luôn throw `GraphQl*Exception` cho lỗi nghiệp vụ đã dự đoán; không trả message của exception nội bộ ra client.
-- Query public, ít thay đổi theo user → thêm `@cache(cacheIdentity: ...)` và cho client gọi bằng **GET**. Data cá nhân (cart, customer) → không cache.
+- Query public, ít thay đổi theo user → thêm `@cache(cacheIdentity: ...)` và cho client gọi bằng **GET**. Data cá nhân (cart, customer) → khai báo `@cache(cacheable: false)` để chắc chắn request không bị cache public.
 - Dùng `uid` (ID dạng base64 string) cho entity mới thay vì `id` integer theo convention hiện tại của core schema.
 - DI chỉ cho GraphQL đặt trong `etc/graphql/di.xml`, không đặt global.
 - Schema được cache trong Configuration cache → sửa `schema.graphqls` phải `bin/magento cache:clean config`.
