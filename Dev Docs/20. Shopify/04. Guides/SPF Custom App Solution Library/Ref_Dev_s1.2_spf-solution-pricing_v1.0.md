@@ -44,6 +44,8 @@ Giới hạn và hành vi runtime của Function ghi ở [Solution Library 1.1](
 
 - Function không đổi giá trực tiếp. Ghi đè giá là `lineUpdate` của Cart Transform, chỉ có trên Plus và dev store.
 - Cart Transform chạy trước discount cho line ở checkout.
+- Cart Transform không có giao diện cho merchant. App bật bằng `cartTransformCreate`, mỗi app một function trên mỗi store.
+- Form cấu hình bundle ở trang product và variant: target `admin.product-details.configuration.render`, `admin.product-variant-details.configuration.render`.
 - Function không hiện giá trên trang product. Đây là việc của theme.
 
 ## References
@@ -56,4 +58,5 @@ Giới hạn và hành vi runtime của Function ghi ở [Solution Library 1.1](
 
 | Date | Version | Change | By |
 | :---- | :---- | :---- | :---- |
+| 2026-11-18 | v1.0 | Mục 3 thêm cách bật Cart Transform và target cấu hình bundle. Owner duyệt trong chat ngày 2026-11-18. | Bắc PV |
 | 2026-11-18 | v1.0 | Bản đầu tiên. Owner duyệt trong chat ngày 2026-11-18. | Bắc PV |

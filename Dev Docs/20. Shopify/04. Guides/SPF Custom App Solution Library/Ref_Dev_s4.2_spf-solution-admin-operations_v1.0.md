@@ -61,6 +61,13 @@ Hình 1. Luồng fulfill đơn qua order management app. Nguồn: [Apps in order
 
 Hình 2. Vòng đời của một return. Nguồn: [Apps in returns](https://shopify.dev/docs/apps/build/orders-fulfillment/returns-apps).
 
+![Hình 3](images/s4.2_flow_trigger_fields.png)
+
+Hình 3. Field của trigger hiện thành biến trong Flow editor. Nguồn: [shopify.dev](https://shopify.dev/docs/apps/build/flow/triggers/reference).
+
+![Hình 4](images/s4.2_flow_config_page_preview.png)
+
+Hình 4. Preview trang cấu hình riêng của Flow action. Nguồn: [shopify.dev](https://shopify.dev/docs/apps/build/flow/actions/build-config-ui).
 ## 3. Ràng buộc kỹ thuật
 
 Giới hạn của webhook, bulk operation, Inventory API và metafield ghi ở [Solution Library 4.1](Ref_Dev_s4.1_spf-solution-integration_v1.0.md), mục 3.
@@ -74,6 +81,8 @@ Flow extension của app:
 
 - App thêm được trigger, action, template. Với custom app, chỉ dùng được trên store Plus.
 - Action: Shopify chờ 10 giây, retry tới 36 giờ khi nhận 202, 429, 5XX. `action_run_id` dùng làm idempotency key.
+- Field của trigger và action khai báo bằng `[[settings.fields]]`, hiện trong panel cấu hình của Flow editor.
+- Action có thể có trang cấu hình riêng, khai báo bằng `config_page_url` và `config_page_preview_url`.
 
 Admin API không hỗ trợ:
 
@@ -94,4 +103,6 @@ Admin API không hỗ trợ:
 
 | Date | Version | Change | By |
 | :---- | :---- | :---- | :---- |
+| 2026-11-18 | v1.0 | Thêm 2 hình về chỗ merchant cấu hình extension của app. Owner duyệt trong chat ngày 2026-11-18. | Bắc PV |
+| 2026-11-18 | v1.0 | Mục 3 thêm field cấu hình của Flow trigger và action. Owner duyệt trong chat ngày 2026-11-18. | Bắc PV |
 | 2026-11-18 | v1.0 | Bản đầu tiên. Owner duyệt trong chat ngày 2026-11-18. | Bắc PV |

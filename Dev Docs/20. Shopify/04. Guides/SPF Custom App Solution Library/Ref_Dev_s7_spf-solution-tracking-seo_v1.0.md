@@ -35,7 +35,7 @@ Doc này là mục 7 của [SPF Custom App Solution Library](Ref_Dev_spf-custom-
 
 - App pixel chạy trong strict sandbox (web worker). Custom pixel chạy trong lax sandbox (iframe). Cả hai không truy cập được DOM.
 - Pixel có 15 standard event, gồm `page_viewed`, `product_viewed`, `product_added_to_cart`, `checkout_started`, `payment_info_submitted`, `checkout_completed`.
-- Setting của pixel chỉ hỗ trợ kiểu `single_line_text_field`.
+- Setting của pixel chỉ hỗ trợ kiểu `single_line_text_field`. App set qua `webPixelCreate`, không có giao diện cho merchant.
 - Ở vùng yêu cầu opt-in, callback của pixel chỉ chạy sau khi khách đồng ý.
 
 ## References
@@ -48,4 +48,5 @@ Doc này là mục 7 của [SPF Custom App Solution Library](Ref_Dev_spf-custom-
 
 | Date | Version | Change | By |
 | :---- | :---- | :---- | :---- |
+| 2026-11-18 | v1.0 | Mục 3 ghi cách set setting của pixel. Owner duyệt trong chat ngày 2026-11-18. | Bắc PV |
 | 2026-11-18 | v1.0 | Bản đầu tiên. Owner duyệt trong chat ngày 2026-11-18. | Bắc PV |

@@ -63,6 +63,9 @@ Hình 1. Banner điểm thưởng của app ở trang Order status. Nguồn: [Ab
 
 Hình 2. Trang wishlist dạng full-page extension. Nguồn: [Build new pages in customer accounts](https://shopify.dev/docs/apps/build/customer-accounts/full-page-extensions/build-new-pages).
 
+![Hình 3](images/s5.1_segment_template.png)
+
+Hình 3. Customer segment template của app trong segment editor. Nguồn: [shopify.dev](https://shopify.dev/docs/apps/build/marketing/customer-segments/build-a-template-extension).
 ## 3. Ràng buộc kỹ thuật
 
 Customer account UI extension ở version `2026-10`:
@@ -73,6 +76,7 @@ Customer account UI extension ở version `2026-10`:
 - Trang Order status có 3 trạng thái: chưa đăng nhập thì không có extension, mở từ email thì chỉ đọc được field cho phép, đăng nhập đầy đủ thì không hạn chế.
 - Session token là JWT sống 5 phút. `sub` (customer ID) chỉ có khi khách đã đăng nhập và app có `read_customers`.
 - Metafield của app cần khai báo `access.customer_account = "read_write"` trong `shopify.app.toml`.
+- Setting khai báo bằng `[extensions.settings]`, merchant cấu hình trong checkout and accounts editor.
 
 Customer Account API:
 
@@ -81,6 +85,8 @@ Customer Account API:
 - Mutation đã xác nhận: `customerUpdate`, `customerAddressUpdate`, `metafieldsSet`, `orderRequestReturn`, `subscriptionContractPause`, `subscriptionBillingCycleSkip`.
 
 Protected customer data: custom app tạo trong Dev Dashboard có sẵn level 1 và 2. Public app phải qua review.
+
+Customer segment template: target `admin.customers.segmentation-templates.data`, hiện trong phần template của segment editor.
 
 Từ 2026-10-17, lần đăng nhập đầu vào accounts mới đặt `Customer.state` thành ENABLED và gửi webhook `customers/enable`.
 
@@ -104,4 +110,6 @@ Không hỗ trợ:
 
 | Date | Version | Change | By |
 | :---- | :---- | :---- | :---- |
+| 2026-11-18 | v1.0 | Thêm 1 hình về chỗ merchant cấu hình extension của app. Owner duyệt trong chat ngày 2026-11-18. | Bắc PV |
+| 2026-11-18 | v1.0 | Mục 3 thêm setting của extension và target customer segment template. Owner duyệt trong chat ngày 2026-11-18. | Bắc PV |
 | 2026-11-18 | v1.0 | Bản đầu tiên. Owner duyệt trong chat ngày 2026-11-18. | Bắc PV |

@@ -47,6 +47,13 @@ Ràng buộc chung, áp cho mọi dòng trong bảng:
 
 Hình 1. Vòng đời của payments app, từ cài đặt tới kích hoạt. Nguồn: [Extensions for payments](https://shopify.dev/docs/apps/build/payments).
 
+![Hình 2](images/s2.1_payment_customization_picker.png)
+
+Hình 2. Hộp thoại chọn Function khi merchant bấm Add a customization ở Settings > Payments. Nguồn: [shopify.dev](https://shopify.dev/docs/apps/build/checkout/payments/ux-for-payments).
+
+![Hình 3](images/s2.1_payment_customization_form.png)
+
+Hình 3. Trang cấu hình payment customization của app, mở theo `[extensions.ui.paths]`. Nguồn: [shopify.dev](https://shopify.dev/docs/apps/build/checkout/payments/build-ui).
 ## 3. Ràng buộc kỹ thuật
 
 Payment Customization Function:
@@ -54,6 +61,8 @@ Payment Customization Function:
 - Thao tác: `paymentMethodHide`, `paymentMethodMove`, `paymentMethodRename`, `paymentTermsSet`, `orderReviewAdd`.
 - Chỉ Plus: `paymentTermsSet`, `orderReviewAdd`, ẩn theo placement.
 - Input không có discount code khách đã nhập.
+- Merchant tạo ở Settings > Payments > Payment customizations > Add a customization. Shopify liệt kê Function của app.
+- Bấm vào Function thì mở trang của app theo `[extensions.ui.paths]` (`create`, `details`). Scope `write_payment_customizations`.
 
 Giới hạn của Checkout UI extension và Validation Function ghi ở [Solution Library 2.2](Ref_Dev_s2.2_spf-solution-checkout-fields-validation_v1.0.md), mục 3.
 
@@ -74,4 +83,6 @@ Không hỗ trợ:
 
 | Date | Version | Change | By |
 | :---- | :---- | :---- | :---- |
+| 2026-11-18 | v1.0 | Thêm 2 hình về chỗ merchant cấu hình extension của app. Owner duyệt trong chat ngày 2026-11-18. | Bắc PV |
+| 2026-11-18 | v1.0 | Mục 3 thêm chỗ merchant tạo payment customization trong admin. Owner duyệt trong chat ngày 2026-11-18. | Bắc PV |
 | 2026-11-18 | v1.0 | Bản đầu tiên. Owner duyệt trong chat ngày 2026-11-18. | Bắc PV |

@@ -49,6 +49,8 @@ Order routing:
 
 - Location Rule Function: target `cart.fulfillment-groups.location-rankings.generate.run`, beta, phải xin, chỉ Plus.
 - Fulfillment Constraints Function: target `cart.fulfillment-constraints.generate.run`, tối đa 25 đang bật, kết quả cache 15 phút.
+- Location Rule: form cài đặt là Admin UI extension, target `admin.settings.order-routing-rule.render`, nằm trong phần order routing của Settings.
+- Fulfillment Constraints không có giao diện cho merchant. App đăng ký bằng `fulfillmentConstraintRuleCreate`, scope `write_fulfillment_constraint_rules`.
 
 Fulfillment order:
 
@@ -67,4 +69,5 @@ Fulfillment order:
 
 | Date | Version | Change | By |
 | :---- | :---- | :---- | :---- |
+| 2026-11-18 | v1.0 | Mục 3 thêm form cài đặt của Location Rule và cách đăng ký Fulfillment Constraints. Owner duyệt trong chat ngày 2026-11-18. | Bắc PV |
 | 2026-11-18 | v1.0 | Bản đầu tiên. Owner duyệt trong chat ngày 2026-11-18. | Bắc PV |

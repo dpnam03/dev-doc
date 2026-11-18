@@ -79,6 +79,9 @@ Hình 2. Luồng đặt hàng B2B. Nguồn: [Apps and B2B](https://shopify.dev/d
 
 Hình 3. Vòng đời subscription giữa merchant, khách, Shopify và app. Nguồn: [Model a subscriptions solution](https://shopify.dev/docs/apps/build/purchase-options/subscriptions/model-subscriptions-solution).
 
+![Hình 4](images/s5.2_purchase_options_card.png)
+
+Hình 4. Card purchase options của app ở trang product. Nguồn: [shopify.dev](https://shopify.dev/docs/apps/build/purchase-options/purchase-options-extensions).
 ## 3. Ràng buộc kỹ thuật
 
 Giới hạn của customer account UI extension và Customer Account API ghi ở [Solution Library 5.1](Ref_Dev_s5.1_spf-solution-customer-accounts-loyalty_v1.0.md), mục 3.
@@ -104,4 +107,5 @@ Subscription API:
 
 | Date | Version | Change | By |
 | :---- | :---- | :---- | :---- |
+| 2026-11-18 | v1.0 | Thêm 1 hình về chỗ merchant cấu hình extension của app. Owner duyệt trong chat ngày 2026-11-18. | Bắc PV |
 | 2026-11-18 | v1.0 | Bản đầu tiên. Owner duyệt trong chat ngày 2026-11-18. | Bắc PV |

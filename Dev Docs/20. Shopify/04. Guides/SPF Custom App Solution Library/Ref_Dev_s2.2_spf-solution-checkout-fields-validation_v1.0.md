@@ -59,6 +59,13 @@ Hình 1. Lỗi của Validation Function hiện ở đầu checkout. Nguồn: [C
 
 Hình 2. Giá trị custom field lưu thành metafield ở trang order. Nguồn: [Add a field to checkout](https://shopify.dev/docs/apps/build/checkout/fields-banners/add-field).
 
+![Hình 3](images/s2.2_checkout_rule_add.png)
+
+Hình 3. Hộp thoại Add a checkout rule ở Settings > Checkout. Nguồn: [shopify.dev](https://shopify.dev/docs/apps/build/checkout/cart-checkout-validation/create-admin-ui-validation).
+
+![Hình 4](images/s2.2_validation_settings_form.png)
+
+Hình 4. Form cài đặt của Validation Function ở target `admin.settings.validation.render`. Nguồn: [shopify.dev](https://shopify.dev/docs/apps/build/checkout/cart-checkout-validation/create-admin-ui-validation).
 ## 3. Ràng buộc kỹ thuật
 
 Checkout UI extension ở version `2026-10`:
@@ -71,11 +78,14 @@ Checkout UI extension ở version `2026-10`:
 - Static target gắn cố định vào một phần của checkout. Phần đó bị ẩn thì extension không render.
 - `applyMetafieldChange` ghi cart metafield, chỉ dùng được ở target `purchase.checkout`.
 - Khai báo `owner_type` cho metafield trong TOML là bắt buộc từ `2027-01`.
+- `[extensions.settings]`: tối đa 20 setting, merchant cấu hình trong checkout editor.
 
 Validation Function:
 
 - Tối đa 25 mỗi store. Function lỗi thì checkout vẫn chạy tiếp, trừ khi đặt `blockOnFailure`.
 - Lỗi hiện ở field có sẵn được chỉ định hoặc ở `$.cart`. Không gắn lỗi vào custom field được.
+- Form cài đặt là Admin UI extension, target `admin.settings.validation.render`, nối với Function bằng `[extensions.ui] handle`.
+- Merchant thêm rule ở Settings > Checkout > Checkout rules > Add rule.
 - Chạy với Shop Pay, PayPal, Google Pay, Apple Pay và draft order. Không chạy với đơn subscription định kỳ, pre-order, POS, Create Order API, Order Edit.
 
 Lịch deprecation:
@@ -102,4 +112,6 @@ Checkout không hỗ trợ:
 
 | Date | Version | Change | By |
 | :---- | :---- | :---- | :---- |
+| 2026-11-18 | v1.0 | Thêm 2 hình về chỗ merchant cấu hình extension của app. Owner duyệt trong chat ngày 2026-11-18. | Bắc PV |
+| 2026-11-18 | v1.0 | Mục 3 thêm setting của Checkout UI extension và form cài đặt của Validation Function. Owner duyệt trong chat ngày 2026-11-18. | Bắc PV |
 | 2026-11-18 | v1.0 | Bản đầu tiên. Owner duyệt trong chat ngày 2026-11-18. | Bắc PV |

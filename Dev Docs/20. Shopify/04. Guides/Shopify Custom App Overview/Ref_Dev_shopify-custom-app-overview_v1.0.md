@@ -77,6 +77,20 @@ Phạm vi: trang Checkout, Thank you và Order status. Các bước information,
 | Payment extensions | Phương thức thanh toán riêng. Chỉ Partner được Shopify duyệt mới build được |
 | Post-purchase extensions | UI sau khi đơn được xác nhận, trước trang Thank you. Vẫn là beta, store live phải xin quyền (mục 3.2.2). Trong custom app chỉ cài được trên Plus |
 
+Merchant cấu hình Function trong admin theo 3 kiểu, khai báo trong TOML của Function:
+
+| Kiểu | Function | Merchant vào đâu | Khai báo |
+| :---- | :---- | :---- | :---- |
+| Form của app nằm trong trang Shopify | Discount | Trang tạo discount, chọn loại trong picker | `[extensions.ui] handle`, target `admin.discount-details.function-settings.render` |
+| Form của app nằm trong trang Shopify | Checkout validation | Settings > Checkout > Checkout rules | `[extensions.ui] handle`, target `admin.settings.validation.render` |
+| Form của app nằm trong trang Shopify | Order routing location rule | Settings, phần order routing | Target `admin.settings.order-routing-rule.render` |
+| Shopify liệt kê Function, bấm vào thì mở trang của app | Payment customization | Settings > Payments > Payment customizations | `[extensions.ui.paths]` với `create`, `details` |
+| Shopify liệt kê Function, bấm vào thì mở trang của app | Delivery customization | Settings > Shipping and delivery > Delivery customizations | `[extensions.ui.paths]` với `create`, `details` |
+| Không có giao diện cho merchant | Cart Transform | — | App gọi `cartTransformCreate` |
+| Không có giao diện cho merchant | Fulfillment constraints | — | App gọi `fulfillmentConstraintRuleCreate` |
+
+`[extensions.ui]` và `[extensions.ui.paths]` loại trừ nhau. Checkout UI extension và customer account UI extension có `[extensions.settings]`, tối đa 20 setting, merchant cấu hình trong checkout and accounts editor.
+
 ![Hình 4](images/checkout-decision-tree.png)
 
 Hình 4. Sơ đồ chọn công cụ checkout theo nhu cầu và plan. Nguồn: [Checkout technologies](https://shopify.dev/docs/apps/build/checkout/technologies).
@@ -399,6 +413,7 @@ App không đọc được product thường do:
 
 | Date | Version | Change | By |
 | :---- | :---- | :---- | :---- |
+| 2026-11-18 | v1.0 | Mục 1.2.2 thêm bảng chỗ merchant cấu hình Function trong admin. Owner duyệt trong chat ngày 2026-11-18. | Bắc PV |
 | 2026-11-18 | v1.0 | Thêm 15 ảnh minh họa từ shopify.dev cho mục 1.2, lưu ở `images/`. Owner duyệt trong chat ngày 2026-11-18. | Bắc PV |
 | 2026-11-18 | v1.0 | Viết nội dung cho mọi mục, thêm mục 3.2.1–3.2.8. Sửa phần đã cũ: Dev Dashboard, admin extension targets, Function chỉ chạy trên Plus với custom app, Polaris web components, POS targets. Sửa thêm CLI, rate limit, access requests, webhook, IP allowlist. Khai báo exception B4. Owner duyệt trong chat ngày 2026-11-18. | Bắc PV |
 | 2026-11-12 | v1.0 | Chuyển lên Live. Owner duyệt trong chat ngày 2026-11-12. | Bắc PV |

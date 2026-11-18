@@ -76,6 +76,7 @@ Theme app extension:
 - App embed block có target `head`, `compliance_head`, `body`, chạy trên cả theme vintage, mặc định tắt.
 - Deep link để merchant thêm block: `.../admin/themes/current/editor?template={template}&addAppBlockId={api_key}/{handle}&target=newAppsSection`.
 - App block và app embed không render ở checkout.
+- `available_if` trong schema: ẩn hiện block theo app metafield kiểu boolean.
 
 App proxy:
 
@@ -112,4 +113,5 @@ Storefront API:
 
 | Date | Version | Change | By |
 | :---- | :---- | :---- | :---- |
+| 2026-11-18 | v1.0 | Mục 3 thêm `available_if` của app block. Owner duyệt trong chat ngày 2026-11-18. | Bắc PV |
 | 2026-11-18 | v1.0 | Bản đầu tiên. Owner duyệt trong chat ngày 2026-11-18. | Bắc PV |

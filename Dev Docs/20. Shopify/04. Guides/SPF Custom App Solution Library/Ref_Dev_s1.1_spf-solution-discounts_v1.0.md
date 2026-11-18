@@ -12,6 +12,8 @@
 
 Doc này là mục 1.1 của [SPF Custom App Solution Library](Ref_Dev_spf-custom-app-solution-library_v1.0.md), nghiệp vụ discount. Doc nêu tính năng mặc định của Shopify, các yêu cầu tùy chỉnh kèm giải pháp, và ràng buộc kỹ thuật. Cách đọc các cột và điều kiện chung nằm ở [doc index](Ref_Dev_spf-custom-app-solution-library_v1.0.md).
 
+Doc này vượt cap 2.000 từ của Foundation 0 mục B4. Áp dụng exception pure reference data, giới hạn tạm 3.000 từ. Mục 1, mục 2 và mục 3 chứa dữ liệu tra cứu.
+
 ## 1. Tính năng mặc định
 
 | Tính năng | Mô tả | Giới hạn |
@@ -36,7 +38,8 @@ Các giải pháp dùng Discount Function trong bảng có chung cấu hình:
 
 - Discount Function với target `cart.lines.discounts.generate.run`.
 - Cấu hình lưu ở metafield `$app:function-configuration` của discount.
-- Trang cài đặt trong admin là Admin UI extension, target `admin.discount-details.function-settings.render`.
+- Form cài đặt là Admin UI extension, target `admin.discount-details.function-settings.render`, nối với Function bằng `[extensions.ui] handle`.
+- Shopify hiện discount của app thành một loại trong picker loại discount.
 - Tạo discount bằng `discountAutomaticAppCreate` hoặc `discountCodeAppCreate`, scope `write_discounts`.
 
 Discount Function trong custom app chỉ chạy trên store Plus. Cột "Ràng buộc / fallback" ghi phương án cho store non-Plus.
@@ -61,12 +64,15 @@ Discount Function trong custom app chỉ chạy trên store Plus. Cột "Ràng b
 
 ![Hình 1](images/s1.1_discount_settings_block.png)
 
-Hình 1. Block cài đặt của Discount Function trong trang tạo discount. Nguồn: [Build a discounts UI with admin UI extensions](https://shopify.dev/docs/apps/build/discounts/build-ui-extension).
+Hình 1. Block cài đặt của Discount Function trong trang tạo discount. Nguồn: [shopify.dev](https://shopify.dev/docs/apps/build/discounts/build-ui-extension).
 
 ![Hình 2](images/s1.1_discount_classes_checkout.png)
 
-Hình 2. Checkout áp cùng lúc product, order và shipping discount. Nguồn: [Build a Discount Function](https://shopify.dev/docs/apps/build/discounts/build-discount-function).
+Hình 2. Checkout áp cùng lúc product, order và shipping discount. Nguồn: [shopify.dev](https://shopify.dev/docs/apps/build/discounts/build-discount-function).
 
+![Hình 3](images/s1.1_discount_type_picker.png)
+
+Hình 3. Discount của app hiện thành loại mới trong hộp thoại Select discount type. Tên và mô tả lấy từ TOML của Function. Nguồn: [shopify.dev](https://shopify.dev/docs/apps/build/discounts/ux-for-discounts).
 ## 3. Ràng buộc kỹ thuật
 
 Discount Function API ở version `2026-10`:
@@ -113,4 +119,6 @@ Function không hỗ trợ:
 
 | Date | Version | Change | By |
 | :---- | :---- | :---- | :---- |
+| 2026-11-18 | v1.0 | Thêm 1 hình về chỗ merchant cấu hình extension của app. Khai báo exception B4, giới hạn tạm 3.000 từ. Owner duyệt trong chat ngày 2026-11-18. | Bắc PV |
+| 2026-11-18 | v1.0 | Mục 2 ghi discount của app hiện trong picker loại discount. Owner duyệt trong chat ngày 2026-11-18. | Bắc PV |
 | 2026-11-18 | v1.0 | Bản đầu tiên. Owner duyệt trong chat ngày 2026-11-18. | Bắc PV |

@@ -61,6 +61,9 @@ Hình 2. Khách chọn pickup point ở checkout. Nguồn: [About delivery and s
 
 Hình 3. Khách chọn cửa hàng nhận hàng ở checkout. Nguồn: [About delivery and shipping functions](https://shopify.dev/docs/apps/build/checkout/delivery-shipping).
 
+![Hình 4](images/s3.1_delivery_customization_form.png)
+
+Hình 4. Trang cấu hình delivery customization của app, mở theo `[extensions.ui.paths]`. Nguồn: [shopify.dev](https://shopify.dev/docs/apps/build/checkout/delivery-shipping/delivery-options/build-ui).
 ## 3. Ràng buộc kỹ thuật
 
 Carrier Service API:
@@ -81,6 +84,13 @@ Delivery Customization Function:
 - Không đổi được giá, không thêm được lựa chọn.
 - Apple Pay, Google Pay chỉ cung cấp quốc gia, tỉnh, thành phố, zip trước khi khách xác nhận.
 - Không chạy với đơn subscription định kỳ và draft order tạo trong admin.
+- Merchant tạo ở Settings > Shipping and delivery > Delivery customizations > Add a customization.
+- Bấm vào Function thì mở trang của app theo `[extensions.ui.paths]` (`create`, `details`).
+
+Pickup point và local pickup generator:
+
+- Không có form riêng của app. Merchant chọn extension trong Settings > Shipping and delivery.
+- Pickup point: chọn ở mục "Apply rate to pickup points provided by" của location.
 
 Thay đổi sắp tới:
 
@@ -99,4 +109,6 @@ Thay đổi sắp tới:
 
 | Date | Version | Change | By |
 | :---- | :---- | :---- | :---- |
+| 2026-11-18 | v1.0 | Thêm 1 hình về chỗ merchant cấu hình extension của app. Owner duyệt trong chat ngày 2026-11-18. | Bắc PV |
+| 2026-11-18 | v1.0 | Mục 3 thêm chỗ merchant tạo delivery customization và chọn pickup generator. Owner duyệt trong chat ngày 2026-11-18. | Bắc PV |
 | 2026-11-18 | v1.0 | Bản đầu tiên. Owner duyệt trong chat ngày 2026-11-18. | Bắc PV |
