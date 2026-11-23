@@ -67,7 +67,7 @@ python3 .kb-check/kb-precheck.py --dev-pr 1 --to "2. Reference Library/Dev" > /t
 - Đầu file: tiêu đề một dòng, bảng header 7 field (Owner, Audience, Last reviewed, Review cadence, Version, Linked from, Status), rồi `## Purpose` 2–4 câu.
 - Thân bài: heading đánh số 1, 2, 3 và 1.1, 1.2. Câu tối đa 28 từ, đoạn tối đa 5 câu, URL phải bọc thành link, không dùng từ hedging (`may`, `usually`...) hay từ sáo rỗng (`leverage`, `robust`...).
 - Cuối file: bảng `# Changelog`.
-- Ngôn ngữ (B5): mặc định tiếng Anh, **không trộn Anh và Việt trong một doc**. Tiếng Việt chỉ cho tài liệu function-specific mà function đó chủ yếu làm việc bằng tiếng Việt. Doc tiếng Việt sẽ bị `FAIL B5`.
+- Ngôn ngữ (B5): rule gốc của KB là mặc định tiếng Anh, không trộn Anh và Việt trong một doc. Công cụ dev-docs đang **tắt** rule này qua `local-config.json`, nên doc tiếng Việt không bị báo lỗi B5.
 - Template: `Ref_Shared_doc-template_v1.1.md` (trong thư mục này).
 
 File `.docx`, `.xlsx`, `.pdf` chỉ bị check tên file. Rule nội dung chỉ chạy trên `.md`.
@@ -76,6 +76,20 @@ File `.docx`, `.xlsx`, `.pdf` chỉ bị check tên file. Rule nội dung chỉ 
 
 - `Linked from` trỏ tới doc khác của KB. Không có KB để đối chiếu, nên lỗi này chỉ là cảnh báo.
 - Không có check bump version (C2.2), changelog của file binary, hay CODEOWNERS. Các check đó cần lịch sử git của KB.
+
+## Tắt hoặc đổi mức độ một rule (override local)
+
+File `local-config.json` chứa các override riêng của dev-docs. Nó được gộp lên trên `config.json` mỗi lần chạy. `config.json` là bản copy của KB và bị `sync.sh` ghi đè, còn `local-config.json` thì không.
+
+Hiện tại file này tắt rule `B5-mixed` (không còn báo lỗi khi doc có tiếng Việt):
+
+```json
+{ "severity": { "B5-mixed": "off" } }
+```
+
+Mức độ hợp lệ: `blocking` (chặn), `advisory` (chỉ gợi ý), `off` (tắt). Muốn bật lại B5, xóa dòng `B5-mixed` hoặc đổi thành `blocking`. Cùng cách này tắt được rule khác, ví dụ `"B3-bare-url": "advisory"`. Từ cho phép viết hoa (`readable_allow_caps`) cũng đặt được ở đây: thêm khóa `"readable_allow_caps": [...]`, danh sách này **thay thế** hoàn toàn danh sách của KB nên cần liệt kê đủ.
+
+Override này chỉ có tác dụng với công cụ trong dev-docs. PR check thật của KB vẫn áp dụng B5 theo Foundation 0.
 
 ## Cập nhật rule
 

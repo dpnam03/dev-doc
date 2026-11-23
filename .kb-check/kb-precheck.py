@@ -101,6 +101,13 @@ def check(a, ap, shown):
         ap.error("two files share the name " + ", ".join(dupes) + ": rename one first")
 
     config = kb_check.load_config(HERE, os.path.join(HERE, "config.json"))
+    # local-config.json holds dev-docs overrides (for example turning a rule off). sync.sh never
+    # overwrites it, unlike config.json, which is a copy of the KB's.
+    local = os.path.join(HERE, "local-config.json")
+    if os.path.exists(local):
+        over = json.load(open(local, encoding="utf-8"))
+        config.setdefault("severity", {}).update(over.pop("severity", {}))
+        config.update({k: v for k, v in over.items() if not k.startswith("_")})
     # `Linked from` names other KB docs. dev-docs has no KB to resolve them against.
     config.setdefault("severity", {})["C1-linkedfrom"] = "advisory"
 
