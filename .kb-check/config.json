@@ -1,0 +1,53 @@
+{
+  "_about": "Settings for the KB PR check. The rules themselves are read from Foundation 0 in this repository; this file only tunes how the check applies them.",
+  "ignore": [
+    "README.md",
+    ".gitkeep"
+  ],
+  "templates": [
+    "Ref_Shared_doc-template_v1.1.md"
+  ],
+  "allow_unnumbered": [
+    "purpose",
+    "references",
+    "changelog",
+    "change log"
+  ],
+  "_caps_about": "Fallback only. Foundation 0 Section B4 sets the length caps; from v2.3 it states them in words, and the check reads them from there and blocks on them. These numbers apply, as suggestions only, when a branch carries a Foundation 0 that states its caps in pages.",
+  "caps": {
+    "Foundation": 3000,
+    "OM": 1500,
+    "Ref": 2000
+  },
+  "severity": {},
+  "_severity_about": "Turns a rule to blocking, advisory or off. Empty means every rule follows Foundation 0, except A3-owner-role, which advises until set here (PLAN D1). Set \"A3-owner-role\": \"blocking\" once every function doc names its Function Lead as Owner.",
+  "pinned": [],
+  "max_report_per_rule": 25,
+  "readable_severity": "advisory",
+  "_readable_about": "The readable check comes from the emma-readable skill. Its rules are not in Foundation 0 yet, so it advises and does not block. Set readable_severity to blocking once they are.",
+  "readable_skip_rules": [
+    "sentence"
+  ],
+  "_readable_skip_about": "sentence is skipped because Foundation 0 Section B1 sets a stricter cap (28 words) and kb-check.py reports it.",
+  "readable_allow_caps": [
+    "BABOK",
+    "RACI",
+    "ISMS",
+    "GDPR",
+    "IEEE",
+    "IIBA",
+    "INCOSE",
+    "BNPL",
+    "BOGO",
+    "CCPA",
+    "BCBD",
+    "ADMIN",
+    "MUST",
+    "WANT",
+    "ASAP",
+    "TRUE",
+    "FALSE"
+  ],
+  "_allow_caps_about": "Acronyms and method terms written in capitals by their source (MUST and WANT are Kepner-Tregoe's terms). An ALL-CAPS word for emphasis is not on this list and stays a finding.",
+  "_unnumbered_about": "Headings Section B2 does not number: Purpose (part 3), References (allowed after the body from Foundation 0 v2.3) and Changelog (the last part)."
+}

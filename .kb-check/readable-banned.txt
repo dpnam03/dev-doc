@@ -1,0 +1,12 @@
+# Words the KB reader does not need, for the readable check (emma-readable skill, "words" rule).
+# One word or regular expression per line; case-insensitive.
+#
+# Foundation 0 Section B1's hedging and banned words are checked by kb-check.py, so they are not
+# repeated here. This list carries the skill's hedge phrases, which B1's single words do not catch.
+# Add a word only when a KB reader would have to ask what it means to act on the rule.
+\bas applicable\b
+\bwhere relevant\b
+\bas needed\b
+\bif appropriate\b
+\bwhere appropriate\b
+\bas required\b
