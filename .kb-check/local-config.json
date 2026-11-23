@@ -1,0 +1,6 @@
+{
+  "_about": "Local overrides for dev-docs. Merged over config.json (copied from the KB) when kb-precheck.py runs. sync.sh does not touch this file. Severity values: blocking, advisory, off.",
+  "severity": {
+    "B5-mixed": "off"
+  }
+}
