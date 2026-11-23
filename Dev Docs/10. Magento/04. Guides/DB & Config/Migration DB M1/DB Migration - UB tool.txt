@@ -1,0 +1,39 @@
+Migrate DB từ M1 —> M2
+
+1. Tool và tài liệu migrate db:
+Các case migrate db của em đều dùng tool này: https://www.ubertheme.com/magento-extensions-2-x/magento-2-data-migration-pro/
+
+Ưu điểm: 
+- Hỗ trợ luôn cả delta migration (không cần setup delta mode từ đầu như default)
+- Có vẻ ít lỗi hơn migrate default
+
+Nhược điểm:
+- Không có tài liệu chuẩn của Magento cho tool này - chỉ có user guide
+- Không hỗ trợ migrate CMS
+—————————————————————————————————————
+2. Các lưu ý khi migrate:
+- Cần xác định rõ các thông tin cần migrate - có migrate db của module không, nếu có cần viết thêm
+- Site có thực hiện delta migrate không - delta những info nào
+- Dùng 1 tool thông nhất để migrate (hoặc default hoặc UB tool)
+- Sau khi migrate cần copy media từ M1 sang M2
+
+2.1: TH migrate data chuẩn, dùng tool này từ đầu:
+- Tool này không migrate CMS nên sẽ cần dev export CMS từ M1 và import vào db M2 (mất khoảng 1-2h)
+- TH cần delta migrate cả products: tool này hỗ trợ delta migrate product (tool default không hỗ trợ) nhưng không hỗ trợ migrate category - trong Th có thay đổi về category cần xử lý manual. 
+- TH thay đổi về category ở M1, sau khi xử lý manual ở M2 và delta migrate products qua M2: sẽ có thể xảy ra lỗi “No such entity ID = …” khi save product ở admin - Nguyên nhân là do category này bị xoá ở M1, nhưng khi migrate chỉ update bảng product, không update bảng category nên gây lỗi. Th này cần dev vào thẳng db xoá toàn bộ cate ID này ở product info (thường ở các bảng URL, meta data) - tester cần test kỹ
+- Order: Nếu site chỉ có 1 store, khi migrate order ID từ m1 sang m2 thì các order mới (place order trên M2) sẽ không xuất hiện ở đầu khi sort by biggest entity ID - nguyên nhân là: nếu site có 1 store, order ID ở M1 sẽ có prefix là 1, còn ở M2 có prefix là 0 —> khi sort order by ID thì các order migrate từ M1 sẽ xuất hiện trước —> suggest admin muốn check order update thì sort by date chứ không sort by ID
+
+2.2: TH migrate data chưa đúng chuẩn (dev cũ import product vào)
+- Cần technical check để tìm solution hiệu quả
+- Th này có thể gây ra rất nhiều lỗi khác nhau - tuỳ thuộc từng site, chủ yếu sẽ là lỗi liên quan đến products, category. 1 số lưu ý:
+- Nếu lúc đầu site không migrate đúng chuẩn, sau khi migrate lại sẽ tạo ra 1 root category mới - cần config lại root category cho site
+- Các value của attribute sẽ bị duplicate do dev cũ import các value này vào, sau đó tool lại tiếp tục migrate thêm các value từ M1 —> lúc save attribute sẽ bị báo lỗi duplicate value
+- Các function liên quan đến category có thể sẽ bị ảnh hưởng vì sau khi migrate sẽ xuất hiện các category giống hệt nhau, ở 2 root category (1 là root cate import, 1 là migrated root) - do đó nếu code không check category nằm trong root đang sử dụng thì có thể gây lỗi —> cần test kỹ các function này
+
+—————————————————————————————————
+3. ET:
+3.1 Migrate chuẩn từ đầu: 
+- Tool dùng cho 2 project, k project nào có lỗi - thời gian migrate là 5-6h - ET cho TH lỗi: ~20-25h
+- Cần migrate thêm CMS thì +2-3h
+- Delta migrate: 1h/lần
+3.2 Migrate không chuẩn —> không ET được

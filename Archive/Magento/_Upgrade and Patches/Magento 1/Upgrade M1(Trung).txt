@@ -1,0 +1,23 @@
+Upgrade Steps (from Magento 1.7 to Magento 1.9.3):
+
+Note: you should upgrade from 1.7 to 1.8, 1.8 to 1.9. You shouldn't upgrade directly from very old version to newest version.
+
+1. Backup code & database, download them all to your local computer. Localhost is the best way to upgrade, you shouldn't upgrade directly on server.
+2. Setup a local fresh 1.7 version, please make sure it works well without any issues. Then you'll have exactly the live site at your computer.
+3. Verify whether Magento’s core is changed. Convert all core change into extensions (of course, if necessarily). Please be careful because Magento patches could be installed before. 
+4. List all the extensions we have in the current version, so we can have a checklist to review later (1).
+5. Review the themes and preare the list of all directories, files related to themes (normally the directories are code/community, code/local, design/frontend/theme, design/adminhtml/theme, media, skin, js) (2).
+6. Setup a local fresh 1.8 version, then connect the code to database of 1.7 (you can even duplicate db 1.7 and work with this new one). It will be done by:
++ Make change in app/etc/local.xml
++ Edit core_configure_data table
+7. Verify & fix any issues when finish upgrading
+8. Now we have database of 1.8
+9. Setup another highter Magento version (for example 1.9.0.1) and connect the code to database of 1.8 above. Verify & fix any issues when finish upgrading.
+10. Do the same until we have code and database of latest Magento 1.9.3
+11. Move extensions to 1.9.3 directory, use (1)
+12. Move themes to 1.9.3 directory, use (2)
+13. Verify & fix any issues when finish upgrading
+14. We now have 1.9.3 version at localhost
+15. Go live: there are 2 ways:
+15.1. If live site can be disabled during our upgrading time, we can move all local version to live server
+15.2. If live site get new orders, new customers real time => we have to take it down in 2 hours at least, and do the same steps from #1 to #14 on live server. Of course, it's much easier because we know all the bugs when we work at localhost.

@@ -1,0 +1,56 @@
+# Use for mac or window
+version: '3.8'
+
+x-mutagen:
+    sync:
+        defaults:
+            mode: two-way-resolved
+            symlink:
+                mode: posix-raw
+            ignore:
+                vcs: false
+                paths:
+                    - .DS_Store
+                    - ._*
+                    - "*~"
+                    - "*.sw[a-p]"
+                    - .idea
+                    - .vscode
+                    - node_modules
+                    - var/cache
+                    - var/page_cache
+                    - var/session
+                    - docker/data
+        code:
+            alpha: '${WORK_DIR}'
+            beta: 'volume://code'
+            permissions:
+                defaultDirectoryMode: 0755
+                defaultFileMode: 0644
+            configurationBeta:
+                permissions:
+                    defaultOwner: 'id:${DOCKER_UID:-1000}'
+                    defaultGroup: 'id:${DOCKER_GID:-1000}'
+services:
+    nginx:
+        volumes:
+            - code:${WORK_DIR}:cached
+
+    # httpd:
+    #     volumes:
+    #         - code:${WORK_DIR}:cached
+
+    php:
+        volumes:
+            - code:${WORK_DIR}:cached
+
+    cli:
+        volumes:
+            - code:${WORK_DIR}:cached
+
+    # browser-sync:
+    #     volumes:
+    #         - code:/src:cached
+
+volumes:
+    code:
